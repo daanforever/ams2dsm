@@ -1,9 +1,10 @@
-﻿export module Ams2DSM;
+﻿module;
 
-import std.core;
-using namespace std;
+#include <iostream>
+
+export module Ams2DSM;
 
 export void start()
 {
-	cout << "Hello from DSM." << endl;
+  std::cout << "Hello from DSM." << std::endl;
 }
