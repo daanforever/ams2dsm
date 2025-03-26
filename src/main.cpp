@@ -1,7 +1,9 @@
 // src/main.cpp
-import Ams2DSM;
+import DSM;
+import WebServer;
 
 int main() {
-  start();
+  DSM::start();
+  WebServer::start();
   return 0;
 }
