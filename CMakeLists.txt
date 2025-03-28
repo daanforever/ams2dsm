@@ -1,8 +1,8 @@
-﻿# CMakeList.txt : CMake project for Ams2DSM, include source and define
+﻿# CMakeList.txt : CMake project for ams2dsm, include source and define
 # project specific logic here.
 #
 cmake_minimum_required (VERSION 3.8)
-project(Ams2DSM LANGUAGES CXX)
+project(ams2dsm LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -13,8 +13,6 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_PCH_ENABLED OFF)
 
 include(CMakeInitializeConfigs)
-
-include_directories(Ams2DSM PRIVATE "src" "src/include")
 
 # Enable Hot Reload for MSVC compilers if supported.
 if (POLICY CMP0141)
@@ -29,66 +27,70 @@ include(FetchContent)
 ###############################################################################
 
 FetchContent_Declare(
+    zlib
+    GIT_REPOSITORY https://github.com/madler/zlib.git
+	GIT_TAG v1.3.1
+)
+FetchContent_MakeAvailable(zlib)
+
+FetchContent_Declare(
     cpp-httplib
     GIT_REPOSITORY https://github.com/yhirose/cpp-httplib.git
 	GIT_TAG v0.20.0
 )
 FetchContent_MakeAvailable(cpp-httplib)
 
-get_property(LOCAL_VARS DIRECTORY PROPERTY VARIABLES)
-foreach(VAR ${LOCAL_VARS})
-    message(STATUS "LOCAL: ${VAR} = ${${VAR}}")
-endforeach()
+# get_property(LOCAL_VARS DIRECTORY PROPERTY VARIABLES)
+# foreach(VAR ${LOCAL_VARS})
+#     message(STATUS "LOCAL: ${VAR} = ${${VAR}}")
+# endforeach()
 
 ###############################################################################
 # Main
 ###############################################################################
 
-add_executable(Ams2DSM
-    "src/main.cpp"
-	"src/web/server.cpp"
-)
+add_library(ams2dsmlib "src/web/server.cpp")
 
-target_sources(Ams2DSM PRIVATE
+target_sources(ams2dsmlib PUBLIC
     FILE_SET CXX_MODULES TYPE CXX_MODULES FILES
-    "src/dsm.cppm"
-	"src/web/server/routes.cppm"
+		"src/web/server/routes.cppm"
 )
 
-target_compile_options(Ams2DSM PRIVATE
-    $<$<AND:$<CONFIG:Debug>,$<STREQUAL:$<TARGET_PROPERTY:TYPE>,CXX_MODULES>>:
-        /ZI
-    >
-)
+target_include_directories(ams2dsmlib PUBLIC ${cpp-httplib_SOURCE_DIR})
 
-target_include_directories(Ams2DSM PUBLIC ${cpp-httplib_SOURCE_DIR})
+include_directories(ams2dsm PRIVATE "src" "src/include")
+add_executable(ams2dsm "src/main.cpp")
+target_link_libraries(ams2dsm PUBLIC ams2dsmlib)
 
-# add_custom_target(RmWebDir ALL
-#     COMMAND ${CMAKE_COMMAND} -E rm -rf
-#         ${CMAKE_CURRENT_BINARY_DIR}/web
-# )
-# add_custom_target(CopyWebFiles ALL
-#     COMMAND ${CMAKE_COMMAND} -E copy_directory
-#         ${CMAKE_SOURCE_DIR}/web
-#         ${CMAKE_CURRENT_BINARY_DIR}/web
-#     DEPENDS ${CMAKE_SOURCE_DIR}/web
-# )
-# add_dependencies(Ams2DSM RmWebDir CopyWebFiles)
-
-add_custom_target(CreateHardLink ALL
-    COMMAND ${CMAKE_COMMAND} -E create_hardlink
-	    ${CMAKE_SOURCE_DIR}/web
+add_custom_target(WebCopy ALL
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_SOURCE_DIR}/web
         ${CMAKE_CURRENT_BINARY_DIR}/web
+    DEPENDS ${CMAKE_SOURCE_DIR}/web
 )
+
+add_custom_target(WebSymlink ALL
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+        ${CMAKE_SOURCE_DIR}/web
+        ${CMAKE_CURRENT_BINARY_DIR}/web
+    DEPENDS ${CMAKE_SOURCE_DIR}/web
+)
+
+
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    add_dependencies(ams2dsm WebSymlink)
+else()
+    add_dependencies(ams2dsm WebCopy)
+endif()
 
 if(MSVC)
     #add_compile_options(/experimental:module)
 	add_compile_options(/wd5304)  # Disable C5304
 	set(CMAKE_PDB_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/pdb)
 
-	set_target_properties(Ams2DSM PROPERTIES
+	set_target_properties(ams2dsm PROPERTIES
 		PDB_OUTPUT_DIRECTORY ${CMAKE_PDB_OUTPUT_DIRECTORY}
-		COMPILE_PDB_NAME "Ams2DSM"
+		COMPILE_PDB_NAME "ams2dsm"
     )
 endif()
 
@@ -142,18 +144,23 @@ endif()
 include(GoogleTest)
 
 # Создаем тестовый модуль
-add_executable(runUnitTests "tests/first.test.cppm")
+add_executable(runUnitTests)
 
 # target_include_directories(runUnitTests PUBLIC ${ASIO_INCLUDE_DIR} ${CROW_INCLUDE_DIR} ${CURL_INCLUDE_DIR} ${CPR_INCLUDE_DIR})
 # target_include_directories(runUnitTests PUBLIC ${ASIO_INCLUDE_DIR} ${CROW_INCLUDE_DIR})
 
 target_sources(runUnitTests PRIVATE
-    FILE_SET CXX_MODULES TYPE CXX_MODULES FILES
-    tests/first.test.cppm
-	tests/web/server.test.cppm
+	"tests/web/server.test.cpp"
 )
 
-target_link_libraries(runUnitTests PRIVATE gtest_main)
+
+target_sources(runUnitTests PRIVATE
+    FILE_SET CXX_MODULES TYPE CXX_MODULES FILES
+		"tests/first.test.cppm"
+)
+
+target_include_directories(runUnitTests PUBLIC ${cpp-httplib_SOURCE_DIR})
+target_link_libraries(runUnitTests PRIVATE ams2dsmlib gtest_main)
 
 #enable_testing()
 #gtest_discover_tests(runUnitTests)
