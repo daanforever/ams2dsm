@@ -1,7 +1,11 @@
 #include <csignal>
 #include <atomic>
 #include <memory>
+#include <thread>
+
 #include "web/server.hpp"
+
+//import WebServer;
 
 std::atomic<bool> running{ true };
 std::unique_ptr<Web::Server> server;

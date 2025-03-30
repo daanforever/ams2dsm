@@ -12,6 +12,7 @@ void Web::Server::start() {
 
 void Web::Server::stop() {
   server->stop();
+
   if (server_thread.joinable()) {
     server_thread.join();
   }

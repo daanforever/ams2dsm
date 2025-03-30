@@ -4,13 +4,13 @@
 cmake_minimum_required (VERSION 3.8)
 project(ams2dsm LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_SCAN_FOR_MODULES ON)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
-set(CMAKE_PCH_ENABLED OFF)
+set(CMAKE_PCH_ENABLED ON)
 
 include(CMakeInitializeConfigs)
 
@@ -46,53 +46,95 @@ FetchContent_MakeAvailable(cpp-httplib)
 # endforeach()
 
 ###############################################################################
+# STDlib
+###############################################################################
+
+if(MSVC)
+	file(COPY
+		"$ENV{VCToolsInstallDir}/modules/std.ixx"
+		DESTINATION
+		${CMAKE_SOURCE_DIR}/lib
+	)
+endif()
+
+add_custom_command(OUTPUT "${CMAKE_SOURCE_DIR}/lib/std.ifc" "${CMAKE_SOURCE_DIR}/lib/std.obj"
+	COMMAND cl /std:c++latest /EHsc /nologo /W4 /c "${CMAKE_SOURCE_DIR}/lib/std.ixx"
+	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/lib
+	DEPENDS ${CMAKE_SOURCE_DIR}/lib
+)
+
+if(MSVC)
+
+	add_compile_options(
+		/wd5304 
+		/experimental:module 
+		/Zc:preprocessor 
+		/ifcSearchDir ${CMAKE_SOURCE_DIR}/lib
+        /std:c++latest
+        /Zi
+        /EHsc
+        /MDd
+        /permissive-
+	)
+
+endif()
+
+###############################################################################
 # Main
 ###############################################################################
 
-add_library(ams2dsmlib "src/web/server.cpp")
+add_library(ams2dsmlib)
+
+target_sources(ams2dsmlib PRIVATE
+	"src/web/server.cpp"
+)
 
 target_sources(ams2dsmlib PUBLIC
     FILE_SET CXX_MODULES TYPE CXX_MODULES FILES
+	    "${CMAKE_SOURCE_DIR}/lib/std.ixx"
 		"src/web/server/routes.cppm"
 )
 
 target_include_directories(ams2dsmlib PUBLIC ${cpp-httplib_SOURCE_DIR})
 
-include_directories(ams2dsm PRIVATE "src" "src/include")
-add_executable(ams2dsm "src/main.cpp")
-target_link_libraries(ams2dsm PUBLIC ams2dsmlib)
-
-add_custom_target(WebCopy ALL
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${CMAKE_SOURCE_DIR}/web
-        ${CMAKE_CURRENT_BINARY_DIR}/web
-    DEPENDS ${CMAKE_SOURCE_DIR}/web
-)
-
-add_custom_target(WebSymlink ALL
-    COMMAND ${CMAKE_COMMAND} -E create_symlink
-        ${CMAKE_SOURCE_DIR}/web
-        ${CMAKE_CURRENT_BINARY_DIR}/web
-    DEPENDS ${CMAKE_SOURCE_DIR}/web
-)
-
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    add_dependencies(ams2dsm WebSymlink)
+	add_custom_command(
+		OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/web
+		COMMAND ${CMAKE_COMMAND} -E create_symlink
+			${CMAKE_SOURCE_DIR}/web
+			${CMAKE_CURRENT_BINARY_DIR}/web
+		DEPENDS ${CMAKE_SOURCE_DIR}/web
+		COMMENT "Creating symlink for web"
+	)
 else()
-    add_dependencies(ams2dsm WebCopy)
+	add_custom_command(
+		OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/web
+		COMMAND ${CMAKE_COMMAND} -E copy_directory
+			${CMAKE_SOURCE_DIR}/web
+			${CMAKE_CURRENT_BINARY_DIR}/web
+		DEPENDS ${CMAKE_SOURCE_DIR}/web
+		COMMENT "Copy files for web"
+	)
 endif()
 
-if(MSVC)
-    #add_compile_options(/experimental:module)
-	add_compile_options(/wd5304)  # Disable C5304
-	set(CMAKE_PDB_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/pdb)
+add_custom_target(
+  prepare_web
+  DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/web
+)
 
-	set_target_properties(ams2dsm PROPERTIES
-		PDB_OUTPUT_DIRECTORY ${CMAKE_PDB_OUTPUT_DIRECTORY}
-		COMPILE_PDB_NAME "ams2dsm"
-    )
-endif()
+add_executable(ams2dsm "src/main.cpp")
+
+include_directories(ams2dsm PRIVATE "src" "src/include")
+target_link_libraries(ams2dsm PUBLIC ams2dsmlib)
+add_dependencies(ams2dsm prepare_web)
+
+# if(MSVC)
+# 	set_target_properties(ams2dsm PROPERTIES
+# 		PDB_OUTPUT_DIRECTORY ${CMAKE_PDB_OUTPUT_DIRECTORY}
+# 		COMPILE_PDB_NAME "ams2dsm"
+#     )
+# endif()
 
 ###############################################################################
 # cpr for tests
