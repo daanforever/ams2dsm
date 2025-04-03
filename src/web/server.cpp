@@ -1,19 +1,26 @@
 #include "web/server.hpp"
 
-void Web::Server::start() {
-  WebServer::Routes::configure(*server);
+namespace Web::Server {
+  void Core::start() {
+    configure();
 
-  // Запуск сервера в отдельном потоке
-  server_thread = std::thread([this]() {
-    std::cout << "Server running on port " << port << "\n";
-    server->listen("0.0.0.0", port);
-  });
-}
+    server_thread = std::thread([this]() {
+      std::cout << "Server running on port " << port << "\n";
+      instance.listen("0.0.0.0", port);
+    });
+  }
 
-void Web::Server::stop() {
-  server->stop();
+  void Core::stop() {
+    instance.stop();
 
-  if (server_thread.joinable()) {
-    server_thread.join();
+    if (server_thread.joinable()) {
+      server_thread.join();
+    }
+  }
+
+  void Core::configure()
+  {
+    Router router(instance);
+    Routes::configure(router);
   }
 }

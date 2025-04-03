@@ -1,11 +1,4 @@
 {
-  "environments": [
-    {
-      "INCLUDE": "${env.INCLUDE}",
-      "LIB": "${env.LIB}",
-      "PATH": "${env.PATH}"
-    }
-  ],
   "configurations": [
     {
       "name": "x64-Debug",
@@ -13,7 +6,18 @@
       "configurationType": "Debug",
       "buildRoot": "${projectDir}\\out\\build\\${name}",
       "installRoot": "${projectDir}\\out\\install\\${name}",
-      "cmakeCommandArgs": "",
+      "cmakeCommandArgs": "-DCMAKE_TOOLCHAIN_FILE=\"${env.VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake\"",
+      "buildCommandArgs": "",
+      "ctestCommandArgs": "",
+      "inheritEnvironments": [ "msvc_x64_x64" ]
+    },
+    {
+      "name": "x64-Release",
+      "generator": "Ninja",
+      "configurationType": "RelWithDebInfo",
+      "buildRoot": "${projectDir}\\out\\build\\${name}",
+      "installRoot": "${projectDir}\\out\\install\\${name}",
+      "cmakeCommandArgs": "-DCMAKE_TOOLCHAIN_FILE=\"${env.VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake\"",
       "buildCommandArgs": "",
       "ctestCommandArgs": "",
       "inheritEnvironments": [ "msvc_x64_x64" ],

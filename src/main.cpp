@@ -4,11 +4,10 @@
 #include <thread>
 
 #include "web/server.hpp"
-
-//import WebServer;
+#include "web/server/routes.hpp"
 
 std::atomic<bool> running{ true };
-std::unique_ptr<Web::Server> server;
+std::unique_ptr<Web::Server::Core> server;
 
 static void handle_signal(int signal) {
   running = false;
@@ -19,7 +18,8 @@ int main() {
   std::signal(SIGINT, handle_signal);
   std::signal(SIGABRT, handle_signal);
 
-  server = std::make_unique<Web::Server>(8080);
+  server = std::make_unique<Web::Server::Core>(8080);
+  //Web::Server::Routes::configure(*server);
   server->start();
 
   struct ServerGuard {

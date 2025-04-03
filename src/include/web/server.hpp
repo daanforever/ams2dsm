@@ -1,24 +1,32 @@
+#pragma once
+
 #include <httplib.h>
 
+#include <iostream>
 #include <memory>
 #include <string>
 #include <thread>
+#include <functional>
+#include <vector>
 
-import WebServer.Routes;
+#include "web/server/routes.hpp"
 
-namespace Web {
+namespace Web::Server {
 
-  class Server {
+  class Core {
     private:
-      std::unique_ptr<httplib::Server> server;
       std::thread server_thread;
       int port;
 
-    public:
-      Server(int port) : port(port), server(std::make_unique<httplib::Server>()) {}
+  public:
+    httplib::Server instance;
 
-      void start();
-      void stop();
+    Core(int port) : port(port) {}
+
+    void start();
+    void stop();
+    void configure();
+
   };
 
 } // namespace Web

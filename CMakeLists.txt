@@ -73,7 +73,6 @@ if(MSVC)
         /std:c++latest
         /Zi
         /EHsc
-        /MDd
         /permissive-
 	)
 
@@ -86,13 +85,15 @@ endif()
 add_library(ams2dsmlib)
 
 target_sources(ams2dsmlib PRIVATE
+	"src/web/server/router.cpp"
+	"src/web/server/routes.cpp"
+	"src/web/server/middleware.cpp"
 	"src/web/server.cpp"
-)
+ )
 
 target_sources(ams2dsmlib PUBLIC
     FILE_SET CXX_MODULES TYPE CXX_MODULES FILES
 	    "${CMAKE_SOURCE_DIR}/lib/std.ixx"
-		"src/web/server/routes.cppm"
 )
 
 target_include_directories(ams2dsmlib PUBLIC ${cpp-httplib_SOURCE_DIR})
