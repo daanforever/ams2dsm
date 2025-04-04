@@ -1,20 +1,28 @@
 #pragma once
+#include <memory>
 #include <string>
-#include <httplib.h>
+
+namespace httplib { struct Response; }
 
 namespace Web::Server {
-
   class Response {
   public:
-    explicit Response(httplib::Response& res) : res_(res) {}
+    explicit Response(httplib::Response* res);
+    ~Response();
 
-    void set_status(int code, const std::string& text = "") { res_.status = code; }
-    void set_header(const std::string& name, const std::string& value) { res_.set_header(name, value); }
-    void set_body(const std::string& body) { res_.body = body; }
-    void set_content(const std::string& name, const std::string& value) { res_.set_content(name, value); }
-    void set_redirect(const std::string& url) { res_.set_redirect(url); }
+    // Удаляем копирование
+    Response(Response&) = delete;
+    Response& operator=(Response&) = delete;
+
+    // Интерфейс
+    void set_status(int code, const std::string& text = "");
+    void set_header(const std::string& name, const std::string& value);
+    void set_body(const std::string& body);
+    void set_content(const std::string& body, const std::string& content_type);
+    void set_redirect(const std::string& url);
 
   private:
-    httplib::Response& res_;
+    struct Impl;
+    std::unique_ptr<Impl> pImpl_;
   };
 }

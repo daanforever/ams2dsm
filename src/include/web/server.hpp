@@ -17,6 +17,7 @@ namespace Web::Server {
     private:
       std::thread server_thread;
       int port;
+      std::unique_ptr<Router> router = nullptr;
 
   public:
     httplib::Server instance;

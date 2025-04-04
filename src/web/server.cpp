@@ -20,7 +20,7 @@ namespace Web::Server {
 
   void Core::configure()
   {
-    Router router(instance);
-    Routes::configure(router);
+    router = std::make_unique<Router>(instance);
+    Routes::configure(*router);
   }
 }

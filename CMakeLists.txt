@@ -4,7 +4,7 @@
 cmake_minimum_required (VERSION 3.8)
 project(ams2dsm LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_SCAN_FOR_MODULES ON)
@@ -25,6 +25,8 @@ include(FetchContent)
 ###############################################################################
 # Web Server
 ###############################################################################
+
+set(ZLIB_BUILD_EXAMPLES OFF)
 
 FetchContent_Declare(
     zlib
@@ -70,7 +72,7 @@ if(MSVC)
 		/experimental:module 
 		/Zc:preprocessor 
 		/ifcSearchDir ${CMAKE_SOURCE_DIR}/lib
-        /std:c++latest
+#        /std:c++latest
         /Zi
         /EHsc
         /permissive-
@@ -79,24 +81,41 @@ if(MSVC)
 endif()
 
 ###############################################################################
+# yaml
+###############################################################################
+
+FetchContent_Declare(
+  yaml-cpp
+  GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
+  GIT_TAG 0.8.0
+)
+FetchContent_MakeAvailable(yaml-cpp)
+
+
+###############################################################################
 # Main
 ###############################################################################
 
 add_library(ams2dsmlib)
 
 target_sources(ams2dsmlib PRIVATE
+	"src/web/server.cpp"
 	"src/web/server/router.cpp"
 	"src/web/server/routes.cpp"
 	"src/web/server/middleware.cpp"
-	"src/web/server.cpp"
- )
+	"src/web/server/request.cpp"
+	"src/web/server/response.cpp"
+)
 
 target_sources(ams2dsmlib PUBLIC
     FILE_SET CXX_MODULES TYPE CXX_MODULES FILES
 	    "${CMAKE_SOURCE_DIR}/lib/std.ixx"
+		"src/web/controllers/auth.cppm"
+		"src/config.cppm"
 )
 
 target_include_directories(ams2dsmlib PUBLIC ${cpp-httplib_SOURCE_DIR})
+target_link_libraries(ams2dsmlib PUBLIC yaml-cpp::yaml-cpp)
 
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -169,7 +188,8 @@ add_dependencies(ams2dsm prepare_web)
 # Google Test
 ###############################################################################
 
-include(FetchContent)
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+
 FetchContent_Declare(
   googletest
   GIT_REPOSITORY https://github.com/google/googletest.git
@@ -200,10 +220,11 @@ target_sources(runUnitTests PRIVATE
 target_sources(runUnitTests PRIVATE
     FILE_SET CXX_MODULES TYPE CXX_MODULES FILES
 		"tests/first.test.cppm"
+		"tests/config.test.cppm"
 )
 
 target_include_directories(runUnitTests PUBLIC ${cpp-httplib_SOURCE_DIR})
 target_link_libraries(runUnitTests PRIVATE ams2dsmlib gtest_main)
 
-#enable_testing()
-#gtest_discover_tests(runUnitTests)
+enable_testing()
+gtest_discover_tests(runUnitTests)
