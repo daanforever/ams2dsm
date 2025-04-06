@@ -91,6 +91,16 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(yaml-cpp)
 
+###############################################################################
+# logger
+###############################################################################
+
+FetchContent_Declare(
+  spdlog
+  GIT_REPOSITORY https://github.com/gabime/spdlog.git
+  GIT_TAG v1.15.2
+)
+FetchContent_MakeAvailable(spdlog)
 
 ###############################################################################
 # Main
@@ -112,10 +122,11 @@ target_sources(ams2dsmlib PUBLIC
 	    "${CMAKE_SOURCE_DIR}/lib/std.ixx"
 		"src/web/controllers/auth.cppm"
 		"src/config.cppm"
+ 		"src/logger.cppm"
 )
 
 target_include_directories(ams2dsmlib PUBLIC ${cpp-httplib_SOURCE_DIR})
-target_link_libraries(ams2dsmlib PUBLIC yaml-cpp::yaml-cpp)
+target_link_libraries(ams2dsmlib PUBLIC yaml-cpp::yaml-cpp spdlog::spdlog)
 
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -149,12 +160,50 @@ include_directories(ams2dsm PRIVATE "src" "src/include")
 target_link_libraries(ams2dsm PUBLIC ams2dsmlib)
 add_dependencies(ams2dsm prepare_web)
 
-# if(MSVC)
-# 	set_target_properties(ams2dsm PROPERTIES
-# 		PDB_OUTPUT_DIRECTORY ${CMAKE_PDB_OUTPUT_DIRECTORY}
-# 		COMPILE_PDB_NAME "ams2dsm"
-#     )
-# endif()
+###############################################################################
+# Google Test
+###############################################################################
+
+if(MSVC)
+	# For Windows: Prevent overriding the parent project's compiler/linker settings
+	set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+endif()
+
+# set(INSTALL_GTEST OFF)
+
+FetchContent_Declare(
+  googletest
+  GIT_REPOSITORY https://github.com/google/googletest.git
+  GIT_TAG v1.16.0
+)
+FetchContent_MakeAvailable(googletest)
+
+# set(GTEST_INCLUDE_DIR "${gtest_SOURCE_DIR}/include")
+
+###############################################################################
+# Tests
+###############################################################################
+
+enable_testing()
+
+add_executable(dsmTest)
+
+target_sources(dsmTest PRIVATE
+	"tests/web/server.test.cpp"
+)
+
+target_sources(dsmTest PRIVATE
+    FILE_SET CXX_MODULES TYPE CXX_MODULES FILES
+		
+		"tests/config.test.cppm"
+)
+
+target_include_directories(dsmTest PUBLIC ${cpp-httplib_SOURCE_DIR} "${gmock_SOURCE_DIR}/include")
+target_link_libraries(dsmTest PRIVATE ams2dsmlib GTest::gtest_main)
+
+include(GoogleTest)
+gtest_discover_tests(dsmTest)
+
 
 ###############################################################################
 # cpr for tests
@@ -182,49 +231,3 @@ add_dependencies(ams2dsm prepare_web)
 # 
 # message(STATUS "CURL_INCLUDE_DIR: ${CURL_INCLUDE_DIR}")
 # message(STATUS "CPR_INCLUDE_DIR: ${CPR_INCLUDE_DIR}")
-
-
-###############################################################################
-# Google Test
-###############################################################################
-
-set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-
-FetchContent_Declare(
-  googletest
-  GIT_REPOSITORY https://github.com/google/googletest.git
-  GIT_TAG v1.16.0
-)
-FetchContent_MakeAvailable(googletest)
-
-set(GTEST_INCLUDE_DIR "${gtest_SOURCE_DIR}/include")
-
-if(MSVC)
-	# For Windows: Prevent overriding the parent project's compiler/linker settings
-	set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-endif()
-
-include(GoogleTest)
-
-# Создаем тестовый модуль
-add_executable(runUnitTests)
-
-# target_include_directories(runUnitTests PUBLIC ${ASIO_INCLUDE_DIR} ${CROW_INCLUDE_DIR} ${CURL_INCLUDE_DIR} ${CPR_INCLUDE_DIR})
-# target_include_directories(runUnitTests PUBLIC ${ASIO_INCLUDE_DIR} ${CROW_INCLUDE_DIR})
-
-target_sources(runUnitTests PRIVATE
-	"tests/web/server.test.cpp"
-)
-
-
-target_sources(runUnitTests PRIVATE
-    FILE_SET CXX_MODULES TYPE CXX_MODULES FILES
-		"tests/first.test.cppm"
-		"tests/config.test.cppm"
-)
-
-target_include_directories(runUnitTests PUBLIC ${cpp-httplib_SOURCE_DIR})
-target_link_libraries(runUnitTests PRIVATE ams2dsmlib gtest_main)
-
-enable_testing()
-gtest_discover_tests(runUnitTests)
