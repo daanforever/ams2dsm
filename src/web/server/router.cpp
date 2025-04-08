@@ -1,8 +1,9 @@
 #include "web/server/router.hpp"
+#include "web/server/core.hpp"
 
 using namespace Web::Server;
 
-Router::Router(httplib::Server& _server) : server(_server) {
+Router::Router(Core& server_) : IRouter(server_) {
   server.set_pre_routing_handler(
 
     [this](const httplib::Request& req, httplib::Response& res) -> HandlerResponse {
@@ -15,22 +16,22 @@ Router::Router(httplib::Server& _server) : server(_server) {
   );
 }
 
-Router& Router::Auth(std::string const& path) {
+Router& Router::auth(std::string const& path) {
   chain_middlewares_.push_back(Middleware::Auth(path));
   return *this;
 }
 
-Router& Router::Use(MiddlewareHandler middleware) {
+Router& Router::use(MiddlewareHandler middleware) {
   global_middlewares_.push_back(middleware);
   return *this;
 }
 
-Router& Router::Use(const std::string& path, MiddlewareHandler middleware) {
+Router& Router::use(const std::string& path, MiddlewareHandler middleware) {
   path_middlewares_[path].push_back(middleware);
   return *this;
 }
 
-void Router::Get(const std::string& path, MethodHandler handler) {
+void Router::get(const std::string& path, MethodHandler handler) {
 
   chain_to_path_middleware(path);
 
@@ -41,7 +42,7 @@ void Router::Get(const std::string& path, MethodHandler handler) {
   });
 }
 
-void Router::Post(const std::string& path, MethodHandler handler) {
+void Router::post(const std::string& path, MethodHandler handler) {
 
   chain_to_path_middleware(path);
 
@@ -92,7 +93,7 @@ void Router::chain_to_path_middleware(const std::string& path) {
   if (chain_middlewares_.size()) {
     for (auto it = chain_middlewares_.rbegin(); it != chain_middlewares_.rend(); ++it) {
       auto& mw = *it;
-      Use(path, mw);
+      use(path, mw);
     }
 
     chain_middlewares_.clear();

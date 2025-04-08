@@ -3,7 +3,7 @@
 #include <memory>
 #include <thread>
 
-#include "web/server.hpp"
+#include "web/server/core.hpp"
 #include "web/server/routes.hpp"
 
 std::atomic<bool> running{ true };

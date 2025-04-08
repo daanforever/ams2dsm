@@ -1,36 +1,26 @@
 #pragma once
 
-#include "web/server/request.hpp"
-#include "web/server/response.hpp"
-#include "web/server/middleware.hpp"
+#include "interfaces/web/server/irouter.hpp"
+#include "web/server/core.hpp"
 
 namespace Web::Server {
 
-  class Router {
-  public:
-    using HandlerResponse = httplib::Server::HandlerResponse;
-    using MiddlewareHandler = std::function<HandlerResponse(const Request&, Response&)>;
-    using MethodHandler = std::function<void(const Request&, Response&)>;
-
-  private:
-    httplib::Server& server;
-    std::vector<MiddlewareHandler> global_middlewares_ = {};
-    std::vector<MiddlewareHandler> chain_middlewares_ = {};
-    std::unordered_map<std::string, std::vector<MiddlewareHandler>> path_middlewares_ = {};
-
-    HandlerResponse apply_middlewares(const Request& req, Response& res);
-    void chain_to_path_middleware(const std::string& path);
+  class Router : public IRouter {
+    virtual HandlerResponse apply_middlewares(const Request& req, Response& res) override;
+    virtual void chain_to_path_middleware(const std::string& path) override;
 
   public:
-    Router(httplib::Server& _server);
+    Core& server;
 
-    Router& Use(MiddlewareHandler middleware);                          // Global middleware
-    Router& Use(const std::string& path, MiddlewareHandler middleware); // Path middleware
-    Router& Auth(std::string const& path);                              // Auth middleware
+    explicit Router(Core&);
 
-    void Get(const std::string& path, MethodHandler handler);
-    void Post(const std::string& path, MethodHandler handler);
-    void set_mount_point(const std::string& mount_dir, const std::string& path);
+    virtual Router& use(MiddlewareHandler middleware) override;                          // Global middleware
+    virtual Router& use(const std::string& path, MiddlewareHandler middleware) override; // Path middleware
+    virtual Router& auth(std::string const& path) override;                              // Auth middleware
+
+    virtual void get(const std::string& path, MethodHandler handler) override;
+    virtual void post(const std::string& path, MethodHandler handler) override;
+    virtual void set_mount_point(const std::string& mount_dir, const std::string& path) override;
 
   };
 }

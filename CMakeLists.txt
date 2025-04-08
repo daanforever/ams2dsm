@@ -109,7 +109,7 @@ FetchContent_MakeAvailable(spdlog)
 add_library(ams2dsmlib)
 
 target_sources(ams2dsmlib PRIVATE
-	"src/web/server.cpp"
+	"src/web/server/core.cpp"
 	"src/web/server/router.cpp"
 	"src/web/server/routes.cpp"
 	"src/web/server/middleware.cpp"

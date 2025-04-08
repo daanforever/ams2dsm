@@ -3,16 +3,20 @@
 
 import web.controllers.auth;
 
-void Web::Server::Routes::configure(Web::Server::Router& router) {
+namespace Web::Server {
+  Routes::Routes(IRouter& router_) : router(router_) {};
 
-  router.Auth("/login/").set_mount_point("/", "./web");
-  router.set_mount_point("/login", "./web/login");
+  void Routes::setup() {
 
-  router.Post("/auth", Web::Controllers::Auth::post());
-  router.Get("/auth", Web::Controllers::Auth::get());
+    router.auth("/login/").set_mount_point("/", "./web");
+    router.set_mount_point("/login", "./web/login");
 
-  router.Get("/status", [](const Request& req, Response& res) {
-    res.set_content("Server status: OK", "text/plain");
-  });
+    router.post("/auth", Web::Controllers::Auth::post());
+    router.get("/auth", Web::Controllers::Auth::get());
 
+    router.get("/status", [](const Request& req, Response& res) {
+      res.set_content("Server status: OK", "text/plain");
+    });
+
+  }
 }

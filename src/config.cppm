@@ -1,11 +1,12 @@
 module;
 
-#include "yaml-cpp/yaml.h"
 #include <filesystem>
+#include <fstream>
+
+#include "yaml-cpp/yaml.h"
 
 export module config;
 
-import std;
 import logger;
 
 export class Config {
@@ -14,7 +15,7 @@ private:
   YAML::Emitter out;
 
 public:
-  Config() = default;
+  Config() {};
   ~Config() = default;
 
   struct {
@@ -25,26 +26,43 @@ public:
 
   std::string ConfigFile = "dsm.conf.yaml";
 
-  bool load_config();
-  std::string generate_config();
+  bool load();
+  void save();
+  std::string generate();
+  bool parse_error(const std::string msg);
 
 };
 
-bool Config::load_config()
+bool Config::load()
 {
 
   if (!std::filesystem::exists(ConfigFile)) {
 
-    logger::critical("File " + ConfigFile + " is not found");
-    return false;
+    save();
+
   }
 
   YAML::Node config = YAML::LoadFile(ConfigFile);
 
+  if (config["web"].IsMap()) {
+    web.port     = config["web"]["port"].as<std::uint16_t>();
+    web.login    = config["web"]["login"].as<std::string>();
+    web.password = config["web"]["password"].as<std::string>();
+  } else {
+    return parse_error("section web not found");
+  }
+
   return true;
 }
 
-std::string Config::generate_config()
+void Config::save() {
+
+  std::ofstream fout(ConfigFile);
+  fout << generate();
+
+}
+
+std::string Config::generate()
 {
 
   out << YAML::BeginMap;
@@ -60,4 +78,10 @@ std::string Config::generate_config()
 
   return out.c_str();
 
+}
+
+bool Config::parse_error(const std::string msg)
+{
+  logger::warn("Config parsing error: " + msg);
+  return false;
 }
