@@ -19,60 +19,29 @@ include(FetchContent)
 # Web Server
 ###############################################################################
 
-set(ZLIB_BUILD_EXAMPLES OFF)
-
+set(BOOST_INCLUDE_LIBRARIES beast)
+set(BOOST_ENABLE_CMAKE ON)
+include(FetchContent)
 FetchContent_Declare(
-    zlib
-    GIT_REPOSITORY https://github.com/madler/zlib.git
-	GIT_TAG v1.3.1
+  Boost
+  GIT_REPOSITORY https://github.com/boostorg/boost.git
+  GIT_TAG boost-1.87.0
 )
-FetchContent_MakeAvailable(zlib)
+FetchContent_MakeAvailable(Boost)
 
+include(FetchContent)
 FetchContent_Declare(
-    cpp-httplib
-    GIT_REPOSITORY https://github.com/yhirose/cpp-httplib.git
-	GIT_TAG v0.19.0
+  beauty
+  GIT_REPOSITORY https://github.com/dfleury2/beauty.git
+  GIT_TAG 1.0.4
 )
-FetchContent_MakeAvailable(cpp-httplib)
+FetchContent_MakeAvailable(beauty)
 
 # get_property(LOCAL_VARS DIRECTORY PROPERTY VARIABLES)
 # foreach(VAR ${LOCAL_VARS})
 #     message(STATUS "LOCAL: ${VAR} = ${${VAR}}")
 # endforeach()
 
-###############################################################################
-# STDlib
-###############################################################################
-
-# if(MSVC)
-# 	file(COPY
-# 		"$ENV{VCToolsInstallDir}/modules/std.ixx"
-# 		DESTINATION
-# 		${CMAKE_SOURCE_DIR}/lib
-# 	)
-# endif()
-# 
-# add_custom_command(OUTPUT "${CMAKE_SOURCE_DIR}/lib/std.ifc" "${CMAKE_SOURCE_DIR}/lib/std.obj"
-# 	COMMAND cl /std:c++latest /EHsc /nologo /W4 /c "${CMAKE_SOURCE_DIR}/lib/std.ixx"
-# 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/lib
-# 	DEPENDS ${CMAKE_SOURCE_DIR}/lib
-# )
-# 
-# if(MSVC)
-# 
-# 	add_compile_options(
-# 		/wd5304 
-# 		/experimental:module 
-# 		/Zc:preprocessor 
-# 		/ifcSearchDir ${CMAKE_SOURCE_DIR}/lib
-# #        /std:c++latest
-#         /Zi
-#         /EHsc
-#         /permissive-
-# 	)
-# 
-# endif()
- 
 ###############################################################################
 # yaml
 ###############################################################################
@@ -118,7 +87,7 @@ target_sources(ams2dsmlib PUBLIC
  "src/web/server/core_impl.cppm")
 
 target_include_directories(ams2dsmlib PUBLIC ${cpp-httplib_SOURCE_DIR})
-target_link_libraries(ams2dsmlib PUBLIC yaml-cpp::yaml-cpp spdlog::spdlog)
+target_link_libraries(ams2dsmlib PUBLIC yaml-cpp::yaml-cpp spdlog::spdlog Boost::beast)
 
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
