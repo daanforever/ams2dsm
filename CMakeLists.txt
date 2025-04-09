@@ -10,16 +10,9 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_SCAN_FOR_MODULES ON)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
-set(CMAKE_PCH_ENABLED ON)
+# set(CMAKE_PCH_ENABLED ON)
 
 include(CMakeInitializeConfigs)
-
-# Enable Hot Reload for MSVC compilers if supported.
-if (POLICY CMP0141)
-  cmake_policy(SET CMP0141 NEW)
-  set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<IF:$<AND:$<C_COMPILER_ID:MSVC>,$<CXX_COMPILER_ID:MSVC>>,$<$<CONFIG:Debug,RelWithDebInfo>:EditAndContinue>,$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>>")
-endif()
-
 include(FetchContent)
 
 ###############################################################################
@@ -38,7 +31,7 @@ FetchContent_MakeAvailable(zlib)
 FetchContent_Declare(
     cpp-httplib
     GIT_REPOSITORY https://github.com/yhirose/cpp-httplib.git
-	GIT_TAG v0.20.0
+	GIT_TAG v0.19.0
 )
 FetchContent_MakeAvailable(cpp-httplib)
 
@@ -51,35 +44,35 @@ FetchContent_MakeAvailable(cpp-httplib)
 # STDlib
 ###############################################################################
 
-if(MSVC)
-	file(COPY
-		"$ENV{VCToolsInstallDir}/modules/std.ixx"
-		DESTINATION
-		${CMAKE_SOURCE_DIR}/lib
-	)
-endif()
-
-add_custom_command(OUTPUT "${CMAKE_SOURCE_DIR}/lib/std.ifc" "${CMAKE_SOURCE_DIR}/lib/std.obj"
-	COMMAND cl /std:c++latest /EHsc /nologo /W4 /c "${CMAKE_SOURCE_DIR}/lib/std.ixx"
-	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/lib
-	DEPENDS ${CMAKE_SOURCE_DIR}/lib
-)
-
-if(MSVC)
-
-	add_compile_options(
-		/wd5304 
-		/experimental:module 
-		/Zc:preprocessor 
-		/ifcSearchDir ${CMAKE_SOURCE_DIR}/lib
-#        /std:c++latest
-        /Zi
-        /EHsc
-        /permissive-
-	)
-
-endif()
-
+# if(MSVC)
+# 	file(COPY
+# 		"$ENV{VCToolsInstallDir}/modules/std.ixx"
+# 		DESTINATION
+# 		${CMAKE_SOURCE_DIR}/lib
+# 	)
+# endif()
+# 
+# add_custom_command(OUTPUT "${CMAKE_SOURCE_DIR}/lib/std.ifc" "${CMAKE_SOURCE_DIR}/lib/std.obj"
+# 	COMMAND cl /std:c++latest /EHsc /nologo /W4 /c "${CMAKE_SOURCE_DIR}/lib/std.ixx"
+# 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/lib
+# 	DEPENDS ${CMAKE_SOURCE_DIR}/lib
+# )
+# 
+# if(MSVC)
+# 
+# 	add_compile_options(
+# 		/wd5304 
+# 		/experimental:module 
+# 		/Zc:preprocessor 
+# 		/ifcSearchDir ${CMAKE_SOURCE_DIR}/lib
+# #        /std:c++latest
+#         /Zi
+#         /EHsc
+#         /permissive-
+# 	)
+# 
+# endif()
+ 
 ###############################################################################
 # yaml
 ###############################################################################
@@ -109,9 +102,6 @@ FetchContent_MakeAvailable(spdlog)
 add_library(ams2dsmlib)
 
 target_sources(ams2dsmlib PRIVATE
-	"src/web/server/core.cpp"
-	"src/web/server/router.cpp"
-	"src/web/server/routes.cpp"
 	"src/web/server/middleware.cpp"
 	"src/web/server/request.cpp"
 	"src/web/server/response.cpp"
@@ -119,11 +109,13 @@ target_sources(ams2dsmlib PRIVATE
 
 target_sources(ams2dsmlib PUBLIC
     FILE_SET CXX_MODULES TYPE CXX_MODULES FILES
-	    "${CMAKE_SOURCE_DIR}/lib/std.ixx"
-		"src/web/controllers/auth.cppm"
-		"src/config.cppm"
- 		"src/logger.cppm"
-)
+	"src/config.cppm"
+	"src/logger.cppm"
+	"src/web/controllers/auth.cppm"
+	"src/web/server/core.cppm"
+	"src/web/server/router.cppm"
+	"src/web/server/routes.cppm"
+ "src/web/server/core_impl.cppm")
 
 target_include_directories(ams2dsmlib PUBLIC ${cpp-httplib_SOURCE_DIR})
 target_link_libraries(ams2dsmlib PUBLIC yaml-cpp::yaml-cpp spdlog::spdlog)

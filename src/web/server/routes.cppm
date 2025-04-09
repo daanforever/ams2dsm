@@ -1,10 +1,20 @@
-#include <web/server/routes.hpp>
-#include <web/server/middleware.hpp>
+export module web.server.routes;
 
-import web.controllers.auth;
+import web.server.router;
 
 namespace Web::Server {
-  Routes::Routes(IRouter& router_) : router(router_) {};
+
+  export class Routes {
+  public:
+    Router& router;
+
+    explicit Routes::Routes(Router& router_);
+    ~Routes();
+    void setup();
+  };
+
+  explicit Routes::Routes(Router& router_) : router(router_) {};
+  Routes::~Routes() = default;
 
   void Routes::setup() {
 
@@ -19,4 +29,4 @@ namespace Web::Server {
     });
 
   }
-}
+}  // namespace WebServer::Routes

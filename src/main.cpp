@@ -3,8 +3,7 @@
 #include <memory>
 #include <thread>
 
-#include "web/server/core.hpp"
-#include "web/server/routes.hpp"
+import web.server.core;
 
 std::atomic<bool> running{ true };
 std::unique_ptr<Web::Server::Core> server;
@@ -18,8 +17,7 @@ int main() {
   std::signal(SIGINT, handle_signal);
   std::signal(SIGABRT, handle_signal);
 
-  server = std::make_unique<Web::Server::Core>(8080);
-  //Web::Server::Routes::configure(*server);
+  server = std::make_unique<Web::Server::Core>();
   server->start();
 
   struct ServerGuard {

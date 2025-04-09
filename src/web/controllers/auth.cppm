@@ -2,10 +2,9 @@ module;
 
 #include "web/server/request.hpp"
 #include "web/server/response.hpp"
+#include "string"
 
 export module web.controllers.auth;
-
-import std;
 
 using namespace Web::Server;
 
