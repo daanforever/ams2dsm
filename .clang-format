@@ -1,5 +1,3 @@
-BasedOnStyle: Google
-AllowShortBlocksOnASingleLine: true
-AllowShortCaseLabelsOnASingleLine: true
-AllowShortIfStatementsOnASingleLine: true
-Cpp11BracedListStyle: true
+BasedOnStyle: LLVM
+NamespaceIndentation: All
+ReferenceAlignment: Left

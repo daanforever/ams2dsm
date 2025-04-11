@@ -63,39 +63,47 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(spdlog)
 
 ###############################################################################
+# UUID
+###############################################################################
+
+set(UUID_BUILD_TESTS OFF)
+
+FetchContent_Declare(
+  uuid
+  GIT_REPOSITORY https://github.com/mariusbancila/stduuid.git
+  GIT_TAG v1.2.3
+)
+FetchContent_MakeAvailable(uuid)
+
+###############################################################################
 # Main
 ###############################################################################
 
 add_library(ams2dsmlib)
 
 target_sources(ams2dsmlib PRIVATE
-	
-	
-	
+	"src/web/server/core.cpp"
+	"src/web/server/router.cpp"
+	"src/web/server/routes.cpp"
+	"src/web/server/controllers/auth.cpp"
+	"src/web/server/middlewares/auth.cpp"
 )
 
 target_sources(ams2dsmlib PUBLIC
     FILE_SET CXX_MODULES TYPE CXX_MODULES FILES
 	"src/config.cppm"
 	"src/logger.cppm"
-	"src/web/controllers/auth.cppm"
 	"src/httplib/wrapper.cppm"
-	"src/web/server.cppm"
-	"src/web/server/headers.cppm"
-	"src/web/server/core.cppm"
-	"src/web/server/router.cppm"
-	"src/web/server/routes.cppm"
-	"src/web/server/request.cppm"
-	"src/web/server/response.cppm"
-	"src/web/server/middleware.cppm"
-  "src/web/server/interfaces.ixx")
+    "src/uuid.cppm"
+)
 
 target_include_directories(ams2dsmlib PUBLIC
 	${zlib_SOURCE_DIR}
 	${cpp-httplib_SOURCE_DIR}
+	${uuid_SOURCE_DIR}/include
 )
 
-target_link_libraries(ams2dsmlib PUBLIC yaml-cpp::yaml-cpp spdlog::spdlog)
+target_link_libraries(ams2dsmlib PUBLIC yaml-cpp::yaml-cpp spdlog::spdlog uuid)
 
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")

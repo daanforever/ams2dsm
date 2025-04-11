@@ -8,7 +8,7 @@ module;
 
 export module dsm.config;
 
-import logger;
+import dsm.logger;
 
 export struct Settings {
   struct Web {
