@@ -3,7 +3,7 @@
 #include <memory>
 #include <thread>
 
-import web.server.core;
+import dsm.web.server;
 
 std::atomic<bool> running{ true };
 std::unique_ptr<Web::Server::Core> server;

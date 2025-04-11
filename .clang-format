@@ -1,0 +1,5 @@
+BasedOnStyle: Google
+AllowShortBlocksOnASingleLine: true
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortIfStatementsOnASingleLine: true
+Cpp11BracedListStyle: true

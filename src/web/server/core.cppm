@@ -1,35 +1,46 @@
 module;
 
-#include <thread>
-#include "http.h"
+#include <memory>
+#include <string>
+#include <iostream>
 
-export module web.server.core;
+module dsm.web.server:core;
 
-import config;
+import :headers;
 
 namespace Web::Server {
-
-  class Router;
-  class Routes;
-
-  export class Core {
-  protected:
-    std::thread server_thread_;
-    std::unique_ptr<Config> config_;
-
-  public:
-    std::unique_ptr<httplib::Server> raw;
-    std::unique_ptr<Router> router;
-    std::unique_ptr<Routes> routes;
-
-    Core();
-    ~Core();
-
-    void start();
-    void stop();
-    void configure();
-
-    Config* config();
+  struct Core::Impl {
+    httplib::Server server;
+    std::thread server_thread;
+    ~Impl() = default;
   };
 
-} // namespace Web
+  Core::Core() = default;
+  Core::~Core() = default;
+
+  void Core::start() {
+    raw = std::make_unique<Impl>();
+    configure();
+
+    raw->server_thread = std::thread([this]() {
+      std::cout << "Server running on port " << config.settings.web.port << "\n";
+      raw->server.listen("0.0.0.0", config.settings.web.port);
+    });
+  }
+
+  void Core::stop() {
+    raw->server.stop();
+
+    if (raw->server_thread.joinable()) {
+      raw->server_thread.join();
+    }
+  }
+
+  void Core::configure()
+  {
+    config.load();
+    router = std::make_shared<Router>(*this);
+    routes = std::make_shared<Routes>(*this);
+  }
+
+}
