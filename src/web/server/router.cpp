@@ -1,36 +1,65 @@
-#include <string>
 #include "web/server/headers.hpp"
+#include <string>
 
 namespace Web::Server {
 
-  Router::Router(Core& server_) : server(server_) {
+  Router::Router(Core& server_) : core(server_) {
 
-    auto& a = server.config;
+    logger::debug("router.set_pre_routing_handler");
 
-    //server().set_pre_routing_handler(
+    core.server.set_pre_routing_handler(
 
-    //  [this](const Request& req, Response& res) -> Handler {
-
-    //  Request wrapped_req(&req);
-    //  Response wrapped_res(&res);
-    //  return apply_middlewares(wrapped_req, wrapped_res);
-
-    //}
-    //);
+        [this](const httplib::Request& req, httplib::Response& res) -> Result {
+          logger::debug("router.apply_middlewares");
+          const Request wrapped_req(req);
+          Response wrapped_res(res);
+          return apply_middlewares(wrapped_req, wrapped_res);
+        });
   }
 
   Router::~Router() = default;
 
-  Router& Router::use(Middleware middleware) { return *this; }
-  Router& Router::use(std::string path, Middleware middleware) { return *this; }
+  WrappedHandler Router::wrapped(Handler& handler) {
+    return [handler](const httplib::Request& req, httplib::Response& res) {
+      const Request wrapped_req(req);
+      Response wrapped_res(res);
+      handler(wrapped_req, wrapped_res);
+    };
+  }
 
-  Router& Router::auth(std::string const& path) { return *this; }
+  Router& Router::use(Middleware middleware) {
+    global_middlewares_.push_back(middleware);
+    return *this;
+  }
 
-  void Router::directory(const std::string& mount, const std::string& path) {}
+  Router& Router::use(const std::string& path, Middleware middleware) {
+    path_middlewares_[path].push_back(middleware);
+    return *this;
+  }
 
-  void Router::get(const std::string& path, Handler handler) {}
+  Router& Router::auth(const std::string& path) {
+    chain_middlewares_.push_back(Middlewares::Auth(path));
+    return *this;
+  }
 
-  void Router::post(const std::string& path, Handler handler) {}
+  void Router::directory(const std::string& uri, const std::string& path) {
+    chain_to_path_middleware(uri);
+    core.server.set_mount_point(uri, path);
+  }
+
+  void Router::get(const std::string& path, Handler handler) {
+
+    chain_to_path_middleware(path);
+
+    core.server.Get(path, wrapped(handler));
+  }
+
+  void Router::post(const std::string& path, Handler handler) {
+
+    chain_to_path_middleware(path);
+
+    core.server.Post(path, wrapped(handler));
+  }
 
   void Router::put(const std::string& path, Handler handler) {}
 
@@ -45,50 +74,6 @@ namespace Web::Server {
   void Router::connect(const std::string& path, Handler handler) {}
 
   void Router::trace(const std::string& path, Handler handler) {}
-
-  //Router& Router::auth(std::string const& path) {
-  //  chain_middlewares_.push_back(Middleware::Auth(path));
-  //  return *this;
-  //}
-
-  //Router& Router::use(Handler middleware) {
-  //  global_middlewares_.push_back(middleware);
-  //  return *this;
-  //}
-
-  //Router& Router::use(const std::string& path, Handler middleware) {
-  //  path_middlewares_[path].push_back(middleware);
-  //  return *this;
-  //}
-
-  //void Router::get(const std::string& path, Handler handler) {
-
-  //  chain_to_path_middleware(path);
-
-  //  server().Get(path, [handler](const Request& req, Response& res) {
-  //    Request wrapped_req(&req);
-  //    Response wrapped_res(&res);
-  //    handler(wrapped_req, wrapped_res);
-  //  });
-  //}
-
-  //void Router::post(const std::string& path, Handler handler) {
-
-  //  chain_to_path_middleware(path);
-
-  //  server().Post(path, [handler](const Request& req, Response& res) {
-  //    Request wrapped_req(&req);
-  //    Response wrapped_res(&res);
-  //    handler(wrapped_req, wrapped_res);
-  //  });
-  //}
-
-  //void Router::set_mount_point(const std::string& path, const std::string& dir) {
-
-  //  chain_to_path_middleware(path);
-
-  //  server().set_mount_point(path, dir);
-  //}
 
   Result Router::apply_middlewares(const Request& req, Response& res) {
     std::vector<Middleware> middlewares = {};
@@ -112,7 +97,8 @@ namespace Web::Server {
       auto& mw = *it;
       result = mw(req, res);
 
-      if (result == Result::Handled) break;
+      if (result == Result::Handled)
+        break;
     }
 
     return result;
@@ -121,13 +107,13 @@ namespace Web::Server {
   void Router::chain_to_path_middleware(const std::string& path) {
 
     if (chain_middlewares_.size()) {
-      for (auto it = chain_middlewares_.rbegin(); it != chain_middlewares_.rend(); ++it) {
+      for (auto it = chain_middlewares_.rbegin();
+          it != chain_middlewares_.rend(); ++it) {
         auto& mw = *it;
         use(path, mw);
       }
 
       chain_middlewares_.clear();
     }
-
   }
-}
+} // namespace Web::Server

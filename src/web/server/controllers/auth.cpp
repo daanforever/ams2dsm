@@ -5,8 +5,8 @@ namespace Web::Server::Controllers::Auth {
 
   namespace {
     bool correct(Routes& routes, const std::string& login, const std::string& password) {
-      auto& server_login = routes.router.server.config.settings.web.login;
-      auto& server_password = routes.router.server.config.settings.web.password;
+      auto& server_login = routes.router.core.config.settings.web.login;
+      auto& server_password = routes.router.core.config.settings.web.password;
       return (login == server_login && password == server_password) ? true : false;
     }
   }

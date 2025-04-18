@@ -1,7 +1,7 @@
 ﻿# CMakeList.txt : CMake project for ams2dsm, include source and define
 # project specific logic here.
 #
-cmake_minimum_required (VERSION 3.8)
+cmake_minimum_required (VERSION 3.8...3.31.6)
 project(ams2dsm LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -10,7 +10,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_SCAN_FOR_MODULES ON)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
-# set(CMAKE_PCH_ENABLED ON)
+set(CMAKE_PCH_ENABLED OFF)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 include(CMakeInitializeConfigs)
 include(FetchContent)
@@ -85,15 +86,17 @@ target_sources(ams2dsmlib PRIVATE
 	"src/web/server/core.cpp"
 	"src/web/server/router.cpp"
 	"src/web/server/routes.cpp"
+	"src/web/server/request.cpp"
+	"src/web/server/response.cpp"
 	"src/web/server/controllers/auth.cpp"
 	"src/web/server/middlewares/auth.cpp"
+	"src/web/server/cookie.cpp"
 )
 
 target_sources(ams2dsmlib PUBLIC
     FILE_SET CXX_MODULES TYPE CXX_MODULES FILES
 	"src/config.cppm"
 	"src/logger.cppm"
-	"src/httplib/wrapper.cppm"
     "src/uuid.cppm"
 )
 
@@ -103,7 +106,7 @@ target_include_directories(ams2dsmlib PUBLIC
 	${uuid_SOURCE_DIR}/include
 )
 
-target_link_libraries(ams2dsmlib PUBLIC yaml-cpp::yaml-cpp spdlog::spdlog uuid)
+target_link_libraries(ams2dsmlib PUBLIC yaml-cpp::yaml-cpp spdlog::spdlog stduuid)
 
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -115,6 +118,14 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 		DEPENDS ${CMAKE_SOURCE_DIR}/web
 		COMMENT "Creating symlink for web"
 	)
+	# add_custom_command(
+	# 	OUTPUT ${CMAKE_SOURCE_DIR}/compile_commands.json
+	# 	COMMAND ${CMAKE_COMMAND} -E create_symlink
+	# 		${CMAKE_CURRENT_BINARY_DIR}/compile_commands.json
+	# 		${CMAKE_SOURCE_DIR}/compile_commands.json
+	# 	DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/compile_commands.json
+	# 	COMMENT "Creating symlink for compile_commands.json"
+	# )
 else()
 	add_custom_command(
 		OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/web

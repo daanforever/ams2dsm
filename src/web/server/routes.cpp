@@ -2,10 +2,15 @@
 
 namespace Web::Server {
 
-  Routes::Routes(Router& router_) : router(router_) {};
+  Routes::Routes(Router& router_) : router(router_) {
+    setup();
+  };
+
   Routes::~Routes() = default;
 
   void Routes::setup() {
+
+    logger::debug("routes.setup");
 
     router.auth("/login/").directory("/", "./web");
     router.directory("/login", "./web/login");

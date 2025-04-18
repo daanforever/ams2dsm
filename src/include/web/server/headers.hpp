@@ -6,7 +6,7 @@
 #include <thread>
 
 #include "httplib.h"
-#include "web/server/interfaces.hpp"
+#include "web/server/cookie.hpp"
 
 import dsm.config;
 import dsm.logger;
@@ -14,8 +14,34 @@ import dsm.logger;
 namespace Web::Server {
   class Router;
   class Routes;
+  class Request;
+  class Response;
 
-  class Core : public ICore {
+  using Result = httplib::Server::HandlerResponse;
+  using Handler = std::function<void(const Request&, Response&)>;
+  using Middleware = std::function<Result(const Request&, Response&)>;
+  using WrappedHandler = std::function<void(const httplib::Request&, httplib::Response&)>;
+  using WrappedMiddleware = std::function<Result(const httplib::Request&, httplib::Response&)>;
+
+  class Request : public httplib::Request {
+    const httplib::Request& request;
+
+  public:
+    Request(const httplib::Request& req) : request(req) {};
+    ~Request() = default;
+    std::string cookie(const std::string& name);
+  };
+
+  class Response : public httplib::Response {
+    httplib::Response& response;
+
+  public:
+    Response(httplib::Response& res) : response(res) {};
+    ~Response() = default;
+    void cookie(const std::string& name, const std::string& value);
+  };
+
+  class Core {
   public:
     Config config;
     httplib::Server server;
@@ -25,59 +51,60 @@ namespace Web::Server {
     std::shared_ptr<Routes> routes;
 
     explicit Core();
-    ~Core() override;
+    ~Core();
 
-    void start() override;
-    void stop() override;
+    void start();
+    void stop();
     void configure();
   };
 
-  class Router : public IRouter {
+  class Router {
     std::vector<Middleware> global_middlewares_;
     std::vector<Middleware> chain_middlewares_;
     std::map<std::string, std::vector<Middleware>> path_middlewares_;
 
     Result apply_middlewares(const Request& req, Response& res);
     void chain_to_path_middleware(const std::string& path);
+    WrappedHandler wrapped(Handler& handler);
 
   public:
-    Core& server;
+    Core& core;
 
     explicit Router(Core&);
-    ~Router() override;
+    ~Router();
 
-    Router& use(Middleware middleware) override;
-    Router& use(std::string path, Middleware middleware) override;
-    Router& auth(std::string const& path) override;
+    Router& use(Middleware middleware);
+    Router& use(const std::string& path, Middleware middleware);
+    Router& auth(const std::string& path);
 
-    void directory(const std::string& mount, const std::string& path) override;
+    void directory(const std::string& mount, const std::string& path);
 
-    void get(const std::string& path, Handler handler) override;
-    void post(const std::string& path, Handler handler) override;
-    void put(const std::string& path, Handler handler) override;
-    void patch(const std::string& path, Handler handler) override;
-    void del(const std::string& path, Handler handler) override;
-    void head(const std::string& path, Handler handler) override;
-    void options(const std::string& path, Handler handler) override;
-    void connect(const std::string& path, Handler handler) override;
-    void trace(const std::string& path, Handler handler) override;
+    void get(const std::string& path, Handler handler);
+    void post(const std::string& path, Handler handler);
+    void put(const std::string& path, Handler handler);
+    void patch(const std::string& path, Handler handler);
+    void del(const std::string& path, Handler handler);
+    void head(const std::string& path, Handler handler);
+    void options(const std::string& path, Handler handler);
+    void connect(const std::string& path, Handler handler);
+    void trace(const std::string& path, Handler handler);
   };
 
-  class Routes : public IRoutes {
+  class Routes {
   public:
     Router& router;
 
     explicit Routes(Router& router_);
-    ~Routes() override;
+    ~Routes();
     void setup();
   };
 
   namespace Controllers::Auth {
     Handler post(Routes&);
-  } // namespace Controller
+  }
 
   namespace Middlewares {
-    Middleware Auth();
+    Middleware Auth(std::string path);
   }
 
 } // namespace Web::Server

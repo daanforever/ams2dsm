@@ -1,3 +1,11 @@
 BasedOnStyle: LLVM
 NamespaceIndentation: All
 ReferenceAlignment: Left
+IndentWidth: 2
+TabWidth: 2
+UseTab: Never
+
+ColumnLimit: 100
+BreakInheritanceList: AfterComma
+AlignAfterOpenBracket: DontAlign
+AllowAllArgumentsOnNextLine: false

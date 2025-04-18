@@ -5,7 +5,7 @@ module;
 
 export module dsm.config.test;
 
-import logger;
+import dsm.logger;
 import dsm.config;
 
 using ::testing::HasSubstr;

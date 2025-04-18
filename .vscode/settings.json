@@ -1,0 +1,11 @@
+{
+    "C_Cpp.formatting": "clangFormat",
+    "editor.formatOnSave": true,
+    "clang-format.style": "file",
+    "clang-format.fallbackStyle": "LLVM",
+    "C_Cpp.default.compilerPath": "/usr/bin/clang++",
+    "C_Cpp.default.intelliSenseMode": "linux-clang-x64",
+    "C_Cpp.inlayHints.referenceOperator.enabled": true,
+    "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+    "C_Cpp.errorSquiggles": "disabled"
+}
