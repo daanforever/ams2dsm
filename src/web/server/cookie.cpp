@@ -2,7 +2,7 @@
 
 namespace Web::Server::Cookie {
 
-  std::map<std::string, std::string> parse_cookies(const httplib::Request& req) {
+  std::map<std::string, std::string> parse_cookies(const Request& req) {
 
     std::map<std::string, std::string> cookies;
 
@@ -33,7 +33,7 @@ namespace Web::Server::Cookie {
     return cookies;
   }
 
-  std::string get_cookie(const httplib::Request& req, const std::string& name) {
+  std::string get_cookie(const Request& req, const std::string& name) {
     auto cookies = parse_cookies(req);
     auto it = cookies.find(name);
     if (it != cookies.end()) {
@@ -42,8 +42,11 @@ namespace Web::Server::Cookie {
     return "";
   }
 
-  void set_cookie(httplib::Response& res, const std::string& name, const std::string& value, int max_age_seconds,
-      const std::string& path, const std::string& domain, bool secure, bool http_only) {
+  void set_cookie(
+      Response& res, const std::string& name, const std::string& value,
+      int max_age_seconds, const std::string& path, const std::string& domain,
+      bool secure, bool http_only
+  ) {
 
     std::ostringstream oss;
     oss << name << "=" << value << "; ";

@@ -1,13 +1,20 @@
+#include "web/server/cookie.hpp"
 #include "web/server/headers.hpp"
 
-import dsm.uuid;
-
 namespace Web::Server::Middlewares {
-  Middleware Auth(std::string path) {
-    return [](const Request& req, Response& res) {
-      // dsmUUID::string()
+  Middleware Auth(SessionManager& session, std::string path) {
+    return [&session, &path](const Request& req, Response& res) {
       logger::debug("middleware.auth {0}", req.get_header_value("Cookie"));
-      return Result::Unhandled;
+
+      auto result = Result::Unhandled;
+      auto session_id = req.cookie("session");
+
+      if (session_id == "" || !session.is_valid(session_id)) {
+        res.set_redirect(path);
+        result = Result::Handled;
+      }
+
+      return result;
     };
   }
 } // namespace Web::Server::Middlewares

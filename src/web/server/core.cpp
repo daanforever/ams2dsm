@@ -1,6 +1,6 @@
+#include <iostream>
 #include <memory>
 #include <string>
-#include <iostream>
 
 #include "web/server/headers.hpp"
 
@@ -18,18 +18,16 @@ namespace Web::Server {
   }
 
   void Core::stop() {
-    stop();
-
+    server.stop();
     if (server_thread.joinable()) {
       server_thread.join();
     }
   }
 
-  void Core::configure()
-  {
+  void Core::configure() {
     config.load();
     router = std::make_shared<Router>(*this);
     routes = std::make_shared<Routes>(*router);
   }
 
-}
+} // namespace Web::Server

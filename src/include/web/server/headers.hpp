@@ -6,7 +6,7 @@
 #include <thread>
 
 #include "httplib.h"
-#include "web/server/cookie.hpp"
+#include "web/server/session_manager.hpp"
 
 import dsm.config;
 import dsm.logger;
@@ -21,24 +21,27 @@ namespace Web::Server {
   using Handler = std::function<void(const Request&, Response&)>;
   using Middleware = std::function<Result(const Request&, Response&)>;
   using WrappedHandler = std::function<void(const httplib::Request&, httplib::Response&)>;
-  using WrappedMiddleware = std::function<Result(const httplib::Request&, httplib::Response&)>;
+  using WrappedMiddleware =
+      std::function<Result(const httplib::Request&, httplib::Response&)>;
 
-  class Request : public httplib::Request {
-    const httplib::Request& request;
-
-  public:
-    Request(const httplib::Request& req) : request(req) {};
+  struct Request : httplib::Request {
+    Request(const httplib::Request& req) : httplib::Request(req) {};
     ~Request() = default;
-    std::string cookie(const std::string& name);
+    std::string cookie(const std::string& name) const;
   };
 
-  class Response : public httplib::Response {
-    httplib::Response& response;
-
-  public:
-    Response(httplib::Response& res) : response(res) {};
+  struct Response : httplib::Response {
+    httplib::Response& original;
+    Response(httplib::Response& res) : httplib::Response(res), original(res) {};
     ~Response() = default;
     void cookie(const std::string& name, const std::string& value);
+
+    using set_header = original.set_header;
+    using set_redirect = original.set_redirect;
+    using set_content = original.set_content;
+    using set_content_provider = original.set_content_provider;
+    using set_chunked_content_provider = original.set_chunked_content_provider;
+    using set_file_content = original.set_file_content;
   };
 
   class Core {
@@ -49,6 +52,7 @@ namespace Web::Server {
 
     std::shared_ptr<Router> router;
     std::shared_ptr<Routes> routes;
+    SessionManager session;
 
     explicit Core();
     ~Core();
@@ -104,7 +108,7 @@ namespace Web::Server {
   }
 
   namespace Middlewares {
-    Middleware Auth(std::string path);
+    Middleware Auth(SessionManager& session, std::string path);
   }
 
 } // namespace Web::Server

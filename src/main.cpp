@@ -20,15 +20,19 @@ int main() {
   server = std::make_unique<Web::Server::Core>();
   server->start();
 
-  struct ServerGuard {
-    ~ServerGuard() {
-      if (server)
-        server->stop();
-    }
-  } guard;
+  {
+    struct ServerGuard {
+      ~ServerGuard() {
+        if (server) {
+          server->stop();
+          server.reset();
+        }
+      }
+    } guard;
 
-  while (running) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    while (running) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
   }
 
   return 0;

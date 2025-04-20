@@ -91,6 +91,7 @@ target_sources(ams2dsmlib PRIVATE
 	"src/web/server/controllers/auth.cpp"
 	"src/web/server/middlewares/auth.cpp"
 	"src/web/server/cookie.cpp"
+	"src/web/server/session_manager.cpp"
 )
 
 target_sources(ams2dsmlib PUBLIC
