@@ -1,11 +1,12 @@
-BasedOnStyle: LLVM
+BasedOnStyle: Google
 NamespaceIndentation: All
 ReferenceAlignment: Left
-IndentWidth: 2
-TabWidth: 2
-UseTab: Never
-
-ColumnLimit: 90
-BreakInheritanceList: AfterComma
 AlignAfterOpenBracket: BlockIndent
-AllowAllArgumentsOnNextLine: false
+ColumnLimit: 100
+
+# IndentWidth: 2
+# TabWidth: 2
+# UseTab: Never
+
+# BreakInheritanceList: AfterComma
+# AllowAllArgumentsOnNextLine: false

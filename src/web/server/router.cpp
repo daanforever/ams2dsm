@@ -1,17 +1,17 @@
-#include "web/server/headers.hpp"
 #include <string>
+
+#include "web/server/headers.hpp"
 
 namespace Web::Server {
 
   Router::Router(Core& server_) : core(server_) {
-
     logger::debug("router.set_pre_routing_handler");
 
     core.server.set_pre_routing_handler(
         [this](const httplib::Request& req, httplib::Response& res) -> Result {
           logger::debug("router.pre_routing_handler for path {0}", req.path);
-          const Request wrapped_req = req;
-          Response wrapped_res = res;
+          const Request wrapped_req(req);
+          Response wrapped_res(res);
           logger::debug("router.pre_routing_handler before apply_middlewares", req.path);
           auto result = apply_middlewares(wrapped_req, wrapped_res);
           logger::debug("router.pre_routing_handler after apply_middlewares", req.path);
@@ -24,8 +24,8 @@ namespace Web::Server {
 
   WrappedHandler Router::wrapped(Handler& handler) {
     return [handler](const httplib::Request& req, httplib::Response& res) {
-      const Request wrapped_req = req;
-      Response wrapped_res = res;
+      const Request wrapped_req(req);
+      Response wrapped_res(res);
       handler(wrapped_req, wrapped_res);
     };
   }
@@ -38,8 +38,7 @@ namespace Web::Server {
   Router& Router::use(const std::string& path, Middleware middleware) {
     path_middlewares_[path].push_back(middleware);
     logger::debug(
-        "router.use path_middlewares_ for path {0} size={1}", path,
-        path_middlewares_.count(path)
+        "router.use path_middlewares_ for path {0} size={1}", path, path_middlewares_.count(path)
     );
     return *this;
   }
@@ -85,14 +84,11 @@ namespace Web::Server {
 
     if (global_middlewares_.size()) {
       middlewares = global_middlewares_;
-      logger::debug(
-          "router.apply_middlewares global_middlewares {0}", global_middlewares_.size()
-      );
+      logger::debug("router.apply_middlewares global_middlewares {0}", global_middlewares_.size());
     }
 
     logger::debug(
-        "router.apply_middlewares path_middlewares_ size={1}", req.path,
-        path_middlewares_.size()
+        "router.apply_middlewares path_middlewares_ size={1}", req.path, path_middlewares_.size()
     );
 
     logger::debug(
@@ -115,8 +111,7 @@ namespace Web::Server {
       auto& mw = *it;
       result = mw(req, res);
 
-      if (result == Result::Handled)
-        break;
+      if (result == Result::Handled) break;
     }
 
     return result;
@@ -126,18 +121,15 @@ namespace Web::Server {
     logger::debug("router.chain_to_path_middleware for path {0}", path);
     if (chain_middlewares_.size()) {
       logger::debug(
-          "router.chain_to_path_middleware chain_middlewares_ size={0}",
-          chain_middlewares_.size()
+          "router.chain_to_path_middleware chain_middlewares_ size={0}", chain_middlewares_.size()
       );
       for (auto it = chain_middlewares_.rbegin(); it != chain_middlewares_.rend(); ++it) {
         auto& mw = *it;
-        logger::debug(
-            "router.chain_to_path_middleware use middleware for path {0}", path
-        );
+        logger::debug("router.chain_to_path_middleware use middleware for path {0}", path);
         use(path, mw);
       }
 
       chain_middlewares_.clear();
     }
   }
-} // namespace Web::Server
+}  // namespace Web::Server

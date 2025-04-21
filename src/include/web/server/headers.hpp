@@ -21,8 +21,7 @@ namespace Web::Server {
   using Handler = std::function<void(const Request&, Response&)>;
   using Middleware = std::function<Result(const Request&, Response&)>;
   using WrappedHandler = std::function<void(const httplib::Request&, httplib::Response&)>;
-  using WrappedMiddleware =
-      std::function<Result(const httplib::Request&, httplib::Response&)>;
+  using WrappedMiddleware = std::function<Result(const httplib::Request&, httplib::Response&)>;
 
   struct Request : httplib::Request {
     Request(const httplib::Request& req) : httplib::Request(req) {};
@@ -30,22 +29,49 @@ namespace Web::Server {
     std::string cookie(const std::string& name) const;
   };
 
-  struct Response : httplib::Response {
+  struct Response {
     httplib::Response& original;
-    Response(httplib::Response& res) : httplib::Response(res), original(res) {};
+    Response(httplib::Response& res) : original(res) {};
     ~Response() = default;
+
+    /**
+     * @brief Sets a cookie in the HTTP response (custom extension method)
+     * @param name Cookie name
+     * @param value Cookie value
+     * @param path Cookie path ("/" by default)
+     * @param max_age Cookie lifetime in seconds (1 day by default)
+     */
     void cookie(const std::string& name, const std::string& value);
 
-    using set_header = original.set_header;
-    using set_redirect = original.set_redirect;
-    using set_content = original.set_content;
-    using set_content_provider = original.set_content_provider;
-    using set_chunked_content_provider = original.set_chunked_content_provider;
-    using set_file_content = original.set_file_content;
+    /**
+     * @brief Conversion operator to httplib::Response&
+     * @return Reference to the original response object
+     *
+     * Allows implicit conversion when passing wrapper to functions
+     * expecting httplib::Response&
+     */
+    operator httplib::Response&() { return original; }
+    operator const httplib::Response&() const { return original; }
+
+    // Response status and headers
+    // ==========================
+
+    bool has_header(const std::string& key) const;
+    std::string get_header_value(const std::string& key, const char* def = "", size_t id = 0) const;
+    uint64_t get_header_value_u64(const std::string& key, uint64_t def = 0, size_t id = 0) const;
+    size_t get_header_value_count(const std::string& key) const;
+    void set_header(const std::string& key, const std::string& val);
+
+    void set_redirect(const std::string& url, int status = httplib::StatusCode::Found_302);
+    void set_content(const char* s, size_t n, const std::string& content_type);
+    void set_content(const std::string& s, const std::string& content_type);
+    void set_content(std::string&& s, const std::string& content_type);
+    void set_file_content(const std::string& path, const std::string& content_type);
+    void set_file_content(const std::string& path);
   };
 
   class Core {
-  public:
+   public:
     Config config;
     httplib::Server server;
     std::thread server_thread;
@@ -71,7 +97,7 @@ namespace Web::Server {
     void chain_to_path_middleware(const std::string& path);
     WrappedHandler wrapped(Handler& handler);
 
-  public:
+   public:
     Core& core;
 
     explicit Router(Core&);
@@ -95,7 +121,7 @@ namespace Web::Server {
   };
 
   class Routes {
-  public:
+   public:
     Router& router;
 
     explicit Routes(Router& router_);
@@ -108,7 +134,7 @@ namespace Web::Server {
   }
 
   namespace Middlewares {
-    Middleware Auth(SessionManager& session, std::string path);
+    Middleware Auth(SessionManager& session, const std::string& path);
   }
 
-} // namespace Web::Server
+}  // namespace Web::Server
