@@ -77,6 +77,21 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(uuid)
 
 ###############################################################################
+# inja
+###############################################################################
+
+set(BUILD_TESTING OFF)
+set(INJA_BUILD_TESTS OFF)
+set(BUILD_BENCHMARK OFF)
+
+include(FetchContent)
+FetchContent_Declare(inja
+    GIT_REPOSITORY https://github.com/pantor/inja.git
+    GIT_TAG v3.4.0
+)
+FetchContent_MakeAvailable(inja)
+
+###############################################################################
 # Main
 ###############################################################################
 
@@ -107,7 +122,7 @@ target_include_directories(ams2dsmlib PUBLIC
 	${uuid_SOURCE_DIR}/include
 )
 
-target_link_libraries(ams2dsmlib PUBLIC yaml-cpp::yaml-cpp spdlog::spdlog stduuid)
+target_link_libraries(ams2dsmlib PUBLIC yaml-cpp::yaml-cpp spdlog::spdlog stduuid inja)
 
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")

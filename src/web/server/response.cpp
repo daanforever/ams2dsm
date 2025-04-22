@@ -28,6 +28,17 @@ namespace Web::Server {
     return original.set_redirect(url, status);
   };
 
+  void Response::set_redirect(const std::string& url, std::string message) {
+    if (auto session_id = request.get_session_id()) {
+      router.core.session.set(session_id.value(), "redirect", message);
+    } else {
+      std::string new_sid = router.core.session.create("redirect", message);
+      cookie("session_id", new_sid);
+    }
+
+    return original.set_redirect(url);
+  }
+
   void Response::set_content(const char* s, size_t n, const std::string& content_type) {
     return original.set_content(s, n, content_type);
   };

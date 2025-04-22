@@ -3,7 +3,6 @@
 namespace Web::Server::Cookie {
 
   std::map<std::string, std::string> parse_cookies(const Request& req) {
-
     std::map<std::string, std::string> cookies;
 
     // Check if Cookie header exists
@@ -33,21 +32,19 @@ namespace Web::Server::Cookie {
     return cookies;
   }
 
-  std::string get_cookie(const Request& req, const std::string& name) {
+  std::optional<std::string> get_cookie(const Request& req, const std::string& name) {
     auto cookies = parse_cookies(req);
     auto it = cookies.find(name);
     if (it != cookies.end()) {
       return it->second;
     }
-    return "";
+    return std::nullopt;
   }
 
   void set_cookie(
-      Response& res, const std::string& name, const std::string& value,
-      int max_age_seconds, const std::string& path, const std::string& domain,
-      bool secure, bool http_only
+      Response& res, const std::string& name, const std::string& value, int max_age_seconds,
+      const std::string& path, const std::string& domain, bool secure, bool http_only
   ) {
-
     std::ostringstream oss;
     oss << name << "=" << value << "; ";
 
@@ -80,4 +77,4 @@ namespace Web::Server::Cookie {
     res.set_header("Set-Cookie", cookie_str);
   }
 
-} // namespace Web::Server::Cookie
+}  // namespace Web::Server::Cookie

@@ -24,14 +24,21 @@ namespace Web::Server {
   using WrappedMiddleware = std::function<Result(const httplib::Request&, httplib::Response&)>;
 
   struct Request : httplib::Request {
-    Request(const httplib::Request& req) : httplib::Request(req) {};
+    Router& router;
+    Request(const httplib::Request& req, Router& router_)
+        : httplib::Request(req), router(router_) {};
     ~Request() = default;
-    std::string cookie(const std::string& name) const;
+    std::optional<std::string> cookie(const std::string& name) const;
+    bool has_session_id() const;
+    std::optional<std::string> get_session_id() const;
   };
 
   struct Response {
+    Router& router;
+    const Request& request;
     httplib::Response& original;
-    Response(httplib::Response& res) : original(res) {};
+    Response(Router& router_, const Request& req, httplib::Response& res)
+        : router(router_), request(req), original(res) {};
     ~Response() = default;
 
     /**
@@ -63,6 +70,7 @@ namespace Web::Server {
     void set_header(const std::string& key, const std::string& val);
 
     void set_redirect(const std::string& url, int status = httplib::StatusCode::Found_302);
+    void set_redirect(const std::string& url, std::string message);
     void set_content(const char* s, size_t n, const std::string& content_type);
     void set_content(const std::string& s, const std::string& content_type);
     void set_content(std::string&& s, const std::string& content_type);

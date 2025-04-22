@@ -10,8 +10,8 @@ namespace Web::Server {
     core.server.set_pre_routing_handler(
         [this](const httplib::Request& req, httplib::Response& res) -> Result {
           logger::debug("router.pre_routing_handler for path {0}", req.path);
-          const Request wrapped_req(req);
-          Response wrapped_res(res);
+          const Request wrapped_req(req, *this);
+          Response wrapped_res(*this, wrapped_req, res);
           logger::debug("router.pre_routing_handler before apply_middlewares", req.path);
           auto result = apply_middlewares(wrapped_req, wrapped_res);
           logger::debug("router.pre_routing_handler after apply_middlewares", req.path);
@@ -23,9 +23,9 @@ namespace Web::Server {
   Router::~Router() = default;
 
   WrappedHandler Router::wrapped(Handler& handler) {
-    return [handler](const httplib::Request& req, httplib::Response& res) {
-      const Request wrapped_req(req);
-      Response wrapped_res(res);
+    return [&, handler](const httplib::Request& req, httplib::Response& res) {
+      const Request wrapped_req(req, *this);
+      Response wrapped_res(*this, wrapped_req, res);
       handler(wrapped_req, wrapped_res);
     };
   }
