@@ -1,0 +1,147 @@
+C++ Style Guide: Dot (.) vs Arrow (->) Operator Usage
+
+Last updated: [Date]
+Version: 1.0
+1. Core Principles
+
+    Use . for accessing members of objects (value or reference types).
+
+    Use -> for accessing members via pointers (raw or smart pointers).
+
+    Avoid mixing . and -> in a single call chain unless absolutely necessary.
+
+Bad:
+cpp
+
+obj->getConfig().param->update();  // Hard to read and error-prone
+
+Good:
+cpp
+
+auto& config = obj->getConfig();  // Split into clear steps
+config.param.update();
+
+2. Prefer References When Ownership Isn’t Needed
+
+If an object cannot be nullptr, pass it by reference to use . consistently.
+
+Good:
+cpp
+
+void process(const Config& config) {  // Use '&' to enforce non-null  
+    config.update();  // Cleaner than config->update()  
+}
+
+Avoid (unless ownership transfer is needed):
+cpp
+
+void process(std::shared_ptr<Config> config) {  
+    config->update();  // Unnecessary indirection  
+}
+
+3. For Optional Objects, Use std::optional (C++17+)
+
+If an object may be missing but you want to avoid ->, use std::optional:
+cpp
+
+std::optional<Config> config = loadConfig();  
+if (config) {  
+    config.value().update();  // No arrow!  
+}
+
+4. Avoid "Arrow Hell" in Call Chains
+
+Break long -> chains into intermediate variables for clarity and safety.
+
+Bad:
+cpp
+
+auto value = data->getConfig()->getParam()->getValue();  // Risky and unclear  
+
+Good:
+cpp
+
+if (auto config = data->getConfig()) {  
+    if (auto param = config->getParam()) {  
+        auto value = param->getValue();  // Safer and more readable  
+    }  
+}
+
+*(In C++23, consider and_then for std::optional chains.)*
+5. Smart Pointers: Stick to -> or Dereference Explicitly
+
+    Default to -> for std::shared_ptr, std::unique_ptr.
+
+    Explicit dereference ((*ptr).method()) is allowed but discouraged unless it improves readability.
+
+cpp
+
+auto obj = std::make_shared<Widget>();  
+obj->render();          // Standard  
+(*obj).render();        // Rarely needed – use only if justified  
+
+Avoid:
+cpp
+
+auto& ref = *obj;       // Unnecessary if 'obj' is used once  
+ref.render();  
+
+6. Consistency Across the Project
+
+    If the codebase primarily uses smart pointers, standardize on ->.
+
+    If objects are often passed by value/reference, minimize ->.
+
+    Document exceptions (e.g., third-party APIs requiring mixed usage).
+
+Example Rule:
+
+    "In this project, -> is reserved for smart pointers and optional dereferencing. For non-null objects, prefer references and .. Break mixed ./-> chains into separate steps."
+
+7. Advanced Alternatives (Use Sparingly)
+Wrapper for Dot Access (If Strongly Preferred)
+cpp
+
+template <typename T>  
+struct Ptr {  
+    std::shared_ptr<T> ptr;  
+    T& operator*()  { return *ptr; }  
+    T* operator->() { return ptr.get(); }  
+    T& get()        { return *ptr; }  // Explicit dot access  
+};  
+
+Ptr<Widget> w{std::make_shared<Widget>()};  
+w.get().render();  // Now uses '.'  
+
+(Adds complexity – only use if team agrees!)
+std::reference_wrapper
+cpp
+
+std::reference_wrapper<Widget> ref = *ptr;  
+ref.get().render();  // Access via '.'  
+
+Summary of Rules
+Case	Operator	Example
+Object (value/reference)	.	obj.method()
+Raw/smart pointer	->	ptr->method()
+std::optional	.value()	opt.value().method()
+Dereferenced pointer	(*ptr).	(*ptr).method() (rare)
+
+Key Takeaways:
+
+    Default to -> for pointers, . for objects.
+
+    Break complex chains into separate steps.
+
+    Prefer references where null isn’t possible.
+
+    Document exceptions in the project’s style guide.
+
+Enforcement
+
+    Use clang-tidy with checks like readability-arrow-depth to limit -> nesting.
+
+    Add comments for intentional mixed usage:
+    cpp
+
+// NOTE: Mixed ./-

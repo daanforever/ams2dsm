@@ -6,143 +6,101 @@
 #include <thread>
 
 #include "httplib.h"
+#include "web/server/common.hpp"
+#include "web/server/controllers.hpp"
+#include "web/server/request.hpp"
+#include "web/server/response.hpp"
 #include "web/server/session_manager.hpp"
 
 import dsm.config;
 import dsm.logger;
 
-namespace Web::Server {
-  class Router;
-  class Routes;
-  class Request;
-  class Response;
+namespace Web::Server
+{
+    class Core
+    {
+      public:
+        Config config;
+        std::shared_ptr<httplib::Server> server;
+        std::unique_ptr<std::thread> server_thread;
 
-  using Result = httplib::Server::HandlerResponse;
-  using Handler = std::function<void(const Request&, Response&)>;
-  using Middleware = std::function<Result(const Request&, Response&)>;
-  using WrappedHandler = std::function<void(const httplib::Request&, httplib::Response&)>;
-  using WrappedMiddleware = std::function<Result(const httplib::Request&, httplib::Response&)>;
+        std::shared_ptr<Router> router;
+        std::shared_ptr<Routes> routes;
+        SessionManager session;
 
-  struct Request : httplib::Request {
-    Router& router;
-    Request(const httplib::Request& req, Router& router_)
-        : httplib::Request(req), router(router_) {};
-    ~Request() = default;
-    std::optional<std::string> cookie(const std::string& name) const;
-    bool has_session_id() const;
-    std::optional<std::string> get_session_id() const;
-  };
+        explicit Core();
+        ~Core();
 
-  struct Response {
-    Router& router;
-    const Request& request;
-    httplib::Response& original;
-    Response(Router& router_, const Request& req, httplib::Response& res)
-        : router(router_), request(req), original(res) {};
-    ~Response() = default;
+        void start();
+        void stop();
+    };
 
-    /**
-     * @brief Sets a cookie in the HTTP response (custom extension method)
-     * @param name Cookie name
-     * @param value Cookie value
-     * @param path Cookie path ("/" by default)
-     * @param max_age Cookie lifetime in seconds (1 day by default)
-     */
-    void cookie(const std::string& name, const std::string& value);
+    class Router : public std::enable_shared_from_this<Router>
+    {
+        std::vector<Middleware> global_middlewares_;
+        std::vector<Middleware> chain_middlewares_;
+        std::map<std::string, std::vector<Middleware>> path_middlewares_;
+        std::string next_path{};
 
-    /**
-     * @brief Conversion operator to httplib::Response&
-     * @return Reference to the original response object
-     *
-     * Allows implicit conversion when passing wrapper to functions
-     * expecting httplib::Response&
-     */
-    operator httplib::Response&() { return original; }
-    operator const httplib::Response&() const { return original; }
+        Result apply_middlewares( const Request& req, Response& res );
+        void chain_to_path_middleware( const std::string& path );
+        WrappedHandler wrapped( Handler handler );
 
-    // Response status and headers
-    // ==========================
+      public:
+        std::shared_ptr<Core> core;
 
-    bool has_header(const std::string& key) const;
-    std::string get_header_value(const std::string& key, const char* def = "", size_t id = 0) const;
-    uint64_t get_header_value_u64(const std::string& key, uint64_t def = 0, size_t id = 0) const;
-    size_t get_header_value_count(const std::string& key) const;
-    void set_header(const std::string& key, const std::string& val);
+        explicit Router( std::shared_ptr<Core> );
+        ~Router();
 
-    void set_redirect(const std::string& url, int status = httplib::StatusCode::Found_302);
-    void set_redirect(const std::string& url, std::string message);
-    void set_content(const char* s, size_t n, const std::string& content_type);
-    void set_content(const std::string& s, const std::string& content_type);
-    void set_content(std::string&& s, const std::string& content_type);
-    void set_file_content(const std::string& path, const std::string& content_type);
-    void set_file_content(const std::string& path);
-  };
+        Router& use( Middleware middleware );
+        Router& use( const std::string& path, Middleware middleware );
+        Router& auth( const std::string& path );
+        Router& path( const std::string& path );
 
-  class Core {
-   public:
-    Config config;
-    httplib::Server server;
-    std::thread server_thread;
+        void directory( const std::string& mount, const std::string& path );
 
-    std::shared_ptr<Router> router;
-    std::shared_ptr<Routes> routes;
-    SessionManager session;
+        void get( const std::string& path, Handler handler );
 
-    explicit Core();
-    ~Core();
+        template <TController T> void get()
+        {
+            logger::debug( "router.get {0} {1}", next_path, typeid( T ).name() );
+            chain_to_path_middleware( next_path );
+            std::shared_ptr<T> controller = std::make_shared<T>( core );
+            core->server->Get( next_path, wrapped( controller->get() ) );
+        }
 
-    void start();
-    void stop();
-    void configure();
-  };
+        void post( const std::string& path, Handler handler );
 
-  class Router {
-    std::vector<Middleware> global_middlewares_;
-    std::vector<Middleware> chain_middlewares_;
-    std::map<std::string, std::vector<Middleware>> path_middlewares_;
+        template <TController T> void post()
+        {
+            logger::debug( "router.post {0} {1}", next_path, typeid( T ).name() );
+            chain_to_path_middleware( next_path );
+            std::shared_ptr<T> controller = std::make_shared<T>( core );
+            core->server->Post( next_path, wrapped( controller->post() ) );
+        };
 
-    Result apply_middlewares(const Request& req, Response& res);
-    void chain_to_path_middleware(const std::string& path);
-    WrappedHandler wrapped(Handler& handler);
+        void put( const std::string& path, Handler handler );
+        void patch( const std::string& path, Handler handler );
+        void del( const std::string& path, Handler handler );
+        void head( const std::string& path, Handler handler );
+        void options( const std::string& path, Handler handler );
+        void connect( const std::string& path, Handler handler );
+        void trace( const std::string& path, Handler handler );
+    };
 
-   public:
-    Core& core;
+    class Routes : public std::enable_shared_from_this<Routes>
+    {
+      public:
+        std::shared_ptr<Router> router;
 
-    explicit Router(Core&);
-    ~Router();
+        explicit Routes( std::shared_ptr<Router> router_ );
+        ~Routes();
+        void setup();
+    };
 
-    Router& use(Middleware middleware);
-    Router& use(const std::string& path, Middleware middleware);
-    Router& auth(const std::string& path);
+    namespace Middlewares
+    {
+        Middleware Auth( SessionManager& session, const std::string& path );
+    }
 
-    void directory(const std::string& mount, const std::string& path);
-
-    void get(const std::string& path, Handler handler);
-    void post(const std::string& path, Handler handler);
-    void put(const std::string& path, Handler handler);
-    void patch(const std::string& path, Handler handler);
-    void del(const std::string& path, Handler handler);
-    void head(const std::string& path, Handler handler);
-    void options(const std::string& path, Handler handler);
-    void connect(const std::string& path, Handler handler);
-    void trace(const std::string& path, Handler handler);
-  };
-
-  class Routes {
-   public:
-    Router& router;
-
-    explicit Routes(Router& router_);
-    ~Routes();
-    void setup();
-  };
-
-  namespace Controllers::Auth {
-    Handler post(Routes&);
-  }
-
-  namespace Middlewares {
-    Middleware Auth(SessionManager& session, const std::string& path);
-  }
-
-}  // namespace Web::Server
+} // namespace Web::Server

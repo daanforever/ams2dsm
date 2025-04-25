@@ -10,119 +10,136 @@ export module dsm.config;
 
 import dsm.logger;
 
-export struct Settings {
-  struct Web {
-    std::string address = "0.0.0.0";
-    std::uint16_t port = 8080;
-    std::string login = "admin";
-    std::string password = "paSS";
-  } web;
-  struct App {
-    int reserved;
-  } app;
+export struct Settings
+{
+    struct Web
+    {
+        std::string address = "0.0.0.0";
+        std::uint16_t port = 8080;
+        std::string login = "admin";
+        std::string password = "paSS";
+        std::string directory = "web";
+    } web;
+    struct App
+    {
+        int reserved;
+    } app;
 };
 
-export class IConfig {
-public:
-  virtual ~IConfig() = default;
+using Listener = std::function<void( const Settings& )>;
 
-  virtual bool load() = 0;
-  virtual bool save() const = 0;
-  
-  virtual const Settings& get() const = 0;
-  virtual bool update(const Settings&) = 0;
+export class Config
+{
 
-  using Listener = std::function<void(const Settings&)>;
-  virtual void addListener(Listener) = 0;
-};
+  private:
+    std::vector<Listener> listeners;
+    std::string ConfigFile = "dsm.conf.yaml";
 
-export class Config : public IConfig {
+  public:
+    Settings settings;
 
-private:
-  std::vector<Listener> listeners;
-  std::string ConfigFile = "dsm.conf.yaml";
+    Config() {};
+    ~Config() = default;
 
-public:
-  Settings settings;
+    bool load();
+    bool save() const;
 
-  Config() {};
-  ~Config() = default;
+    Settings& get();
+    bool update( Settings );
 
-  bool load() override;
-  bool save() const override;
+    void addListener( Listener );
 
-  const Settings& get() const override;
-  bool update(const Settings&) override;
-
-  void addListener(Listener) override;
-
-  bool parse_error(const std::string msg) const;
-  std::string generate() const;
-
+    bool parse_error( const std::string msg ) const;
+    std::string generate() const;
 };
 
 bool Config::load()
 {
-  if (!std::filesystem::exists(ConfigFile)) save();
+    if ( !std::filesystem::exists( ConfigFile ) )
+        save();
 
-  YAML::Node config = YAML::LoadFile(ConfigFile);
+    YAML::Node yaml = YAML::LoadFile( ConfigFile );
 
-  if (config["web"].IsMap()) {
-    settings.web.port     = config["web"]["port"].as<std::uint16_t>();
-    settings.web.login    = config["web"]["login"].as<std::string>();
-    settings.web.password = config["web"]["password"].as<std::string>();
-  } else {
-    return parse_error("section web not found");
-  }
+    if ( yaml["web"].IsMap() )
+    {
+        if ( yaml["web"]["port"].IsDefined() )
+        {
+            settings.web.port = yaml["web"]["port"].as<std::uint16_t>();
+        }
 
-  return true;
+        if ( yaml["web"]["login"].IsDefined() )
+        {
+            settings.web.login = yaml["web"]["login"].as<std::string>();
+        }
+
+        if ( yaml["web"]["password"].IsDefined() )
+        {
+            settings.web.password = yaml["web"]["password"].as<std::string>();
+        }
+
+        if ( yaml["web"]["directory"].IsDefined() )
+        {
+            settings.web.directory = yaml["web"]["directory"].as<std::string>();
+        }
+    }
+    else
+    {
+        return parse_error( "section web not found" );
+    }
+
+    return true;
 }
 
-bool Config::save() const {
-  std::ofstream fout(ConfigFile);
-  fout << generate();
-  return true;
-}
-
-const Settings& Config::get() const
+bool Config::save() const
 {
-  return settings;
+    std::ofstream fout( ConfigFile );
+    fout << generate();
+    return true;
 }
 
-bool Config::update(const Settings& new_settings)
+Settings& Config::get()
 {
-  settings = new_settings;
-
-  for (auto& listener : listeners) {
-    listener(new_settings);
-  }
-
-  return save();
+    return settings;
 }
 
-void Config::addListener(Listener listener) { listeners.push_back(listener); }
+bool Config::update( Settings new_settings )
+{
+    settings = std::move( new_settings );
+
+    for ( auto& listener : listeners )
+    {
+        listener( settings );
+    }
+
+    return save();
+}
+
+void Config::addListener( Listener listener )
+{
+    listeners.push_back( listener );
+}
 
 std::string Config::generate() const
 {
-  YAML::Emitter out;
+    YAML::Emitter out;
 
-  out << YAML::BeginMap;
-  out << YAML::Key << "web" << YAML::Value;
+    out << YAML::BeginMap;
+    out << YAML::Key << "web" << YAML::Value;
 
-  out << YAML::BeginMap;
-  out << YAML::Key << "port" << YAML::Value << settings.web.port;
-  out << YAML::Key << "login" << YAML::Value << settings.web.login;
-  out << YAML::Key << "password" << YAML::Value << settings.web.password;
-  out << YAML::EndMap;
+    out << YAML::BeginMap;
+    out << YAML::Key << "port" << YAML::Value << settings.web.port;
+    out << YAML::Key << "login" << YAML::Value << settings.web.login;
+    out << YAML::Key << "password" << YAML::Value << settings.web.password;
+    out << YAML::Key << "directory" << YAML::Value << settings.web.directory;
+    out << YAML::EndMap;
 
-  out << YAML::EndMap;
+    out << YAML::EndMap;
 
-  return out.c_str();
-
+    return out.c_str();
 }
 
-bool Config::parse_error(const std::string msg) const
+bool Config::parse_error( const std::string msg ) const
 {
-  logger::warn("Config parsing error: " + msg);
-  return false;
+    logger::warn( "Config parsing error: " + msg );
+    return false;
 }

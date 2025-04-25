@@ -3,31 +3,36 @@
 #include <string>
 
 #include "web/server/headers.hpp"
+#include "web/server/logger.hpp"
 
-namespace Web::Server {
-  Core::Core() = default;
-  Core::~Core() = default;
-
-  void Core::start() {
-    configure();
-
-    server_thread = std::thread([this]() {
-      std::cout << "Server running on port " << config.settings.web.port << "\n";
-      server.listen("0.0.0.0", config.settings.web.port);
-    });
-  }
-
-  void Core::stop() {
-    server.stop();
-    if (server_thread.joinable()) {
-      server_thread.join();
+namespace Web::Server
+{
+    Core::Core() : server( std::make_shared<httplib::Server>() )
+    {
+        config.load();
     }
-  }
 
-  void Core::configure() {
-    config.load();
-    router = std::make_shared<Router>(*this);
-    routes = std::make_shared<Routes>(*router);
-  }
+    Core::~Core()
+    {
+        logger::debug( "Core destroy" );
+    }
+
+    void Core::start()
+    {
+        std::cout << "Server running on port " << config.settings.web.port << "\n";
+        server_thread = std::make_unique<std::thread>( [this]() {
+            server->set_logger( Logger::get() );
+            server->listen( "0.0.0.0", config.settings.web.port );
+        } );
+    }
+
+    void Core::stop()
+    {
+        server->stop();
+        if ( server_thread && server_thread->joinable() )
+        {
+            server_thread->join();
+        }
+    }
 
 } // namespace Web::Server
