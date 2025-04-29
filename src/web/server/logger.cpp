@@ -6,8 +6,8 @@ namespace Web::Server
 {
     httplib::Logger Logger::get()
     {
-        return [](const httplib::Request& req, const httplib::Response& res) {
-            logger::info("request {0}", req.path);
+        return []( const httplib::Request& req, const httplib::Response& res ) {
+            logger::info( "request {0} {1}", req.path, res.status );
         };
     }
 

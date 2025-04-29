@@ -1,8 +1,11 @@
 module;
 
+#include <cstdint>
 #include <filesystem>
 #include <fstream>
 #include <functional>
+#include <string>
+#include <vector>
 
 #include "yaml-cpp/yaml.h"
 
@@ -30,12 +33,11 @@ using Listener = std::function<void( const Settings& )>;
 
 export class Config
 {
-
   private:
     std::vector<Listener> listeners;
-    std::string ConfigFile = "dsm.conf.yaml";
 
   public:
+    std::string configFile = "dsm.conf.yaml";
     Settings settings;
 
     Config() {};
@@ -44,47 +46,55 @@ export class Config
     bool load();
     bool save() const;
 
-    Settings& get();
-    bool update( Settings );
+    const Settings& get() const
+    {
+        return settings;
+    }
+    bool update( Settings new_settings );
 
-    void addListener( Listener );
+    void addListener( Listener listener )
+    {
+        listeners.push_back( listener );
+    }
 
-    bool parse_error( const std::string msg ) const;
     std::string generate() const;
+
+  private:
+    bool parse_error( const std::string& msg ) const;
 };
 
 bool Config::load()
 {
-    if ( !std::filesystem::exists( ConfigFile ) )
-        save();
-
-    YAML::Node yaml = YAML::LoadFile( ConfigFile );
-
-    if ( yaml["web"].IsMap() )
+    if ( !std::filesystem::exists( configFile ) )
     {
-        if ( yaml["web"]["port"].IsDefined() )
-        {
-            settings.web.port = yaml["web"]["port"].as<std::uint16_t>();
-        }
+        return save();
+    }
 
-        if ( yaml["web"]["login"].IsDefined() )
-        {
-            settings.web.login = yaml["web"]["login"].as<std::string>();
-        }
+    try
+    {
+        YAML::Node yaml = YAML::LoadFile( configFile );
 
-        if ( yaml["web"]["password"].IsDefined() )
+        if ( yaml["web"] && yaml["web"].IsMap() )
         {
-            settings.web.password = yaml["web"]["password"].as<std::string>();
+            const auto& web = yaml["web"];
+            if ( web["port"] && web["port"].IsDefined() )
+                settings.web.port = web["port"].as<std::uint16_t>();
+            if ( web["login"] && web["login"].IsDefined() )
+                settings.web.login = web["login"].as<std::string>();
+            if ( web["password"] && web["password"].IsDefined() )
+                settings.web.password = web["password"].as<std::string>();
+            if ( web["directory"] && web["directory"].IsDefined() )
+                settings.web.directory = web["directory"].as<std::string>();
         }
-
-        if ( yaml["web"]["directory"].IsDefined() )
+        else
         {
-            settings.web.directory = yaml["web"]["directory"].as<std::string>();
+            return parse_error( "section 'web' not found" );
         }
     }
-    else
+    catch ( const YAML::Exception& e )
     {
-        return parse_error( "section web not found" );
+        logger::warn( "Config parsing error: " + std::string( e.what() ) );
+        return false;
     }
 
     return true;
@@ -92,31 +102,9 @@ bool Config::load()
 
 bool Config::save() const
 {
-    std::ofstream fout( ConfigFile );
+    std::ofstream fout( configFile );
     fout << generate();
     return true;
-}
-
-Settings& Config::get()
-{
-    return settings;
-}
-
-bool Config::update( Settings new_settings )
-{
-    settings = std::move( new_settings );
-
-    for ( auto& listener : listeners )
-    {
-        listener( settings );
-    }
-
-    return save();
-}
-
-void Config::addListener( Listener listener )
-{
-    listeners.push_back( listener );
 }
 
 std::string Config::generate() const
@@ -138,8 +126,20 @@ std::string Config::generate() const
     return out.c_str();
 }
 
-bool Config::parse_error( const std::string msg ) const
+bool Config::parse_error( const std::string& msg ) const
 {
     logger::warn( "Config parsing error: " + msg );
     return false;
+}
+
+bool Config::update( Settings new_settings )
+{
+    settings = std::move( new_settings );
+
+    for ( auto& listener : listeners )
+    {
+        listener( settings );
+    }
+
+    return save();
 }

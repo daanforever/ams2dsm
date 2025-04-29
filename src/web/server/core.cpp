@@ -14,7 +14,7 @@ namespace Web::Server
 
     Core::~Core()
     {
-        logger::debug( "Core destroy" );
+        logger::debug( "Shutdown" );
     }
 
     void Core::start()
