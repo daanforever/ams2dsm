@@ -4,7 +4,7 @@
 cmake_minimum_required (VERSION 3.8...3.31.6)
 project(ams2dsm LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_SCAN_FOR_MODULES ON)
@@ -51,7 +51,7 @@ target_sources(ams2dsmlib PUBLIC
 # 	${inja_SOURCE_DIR}/include/inja
 # )
 
-target_link_libraries(ams2dsmlib PUBLIC httplib yaml-cpp::yaml-cpp spdlog::spdlog stduuid pantor::inja)
+target_link_libraries(ams2dsmlib PUBLIC httplib yaml-cpp::yaml-cpp spdlog::spdlog stduuid pantor::inja )
 
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")

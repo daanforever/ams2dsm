@@ -23,10 +23,23 @@ export struct Settings
         std::string password = "paSS";
         std::string directory = "web";
     } web;
+
     struct App
     {
         int reserved;
     } app;
+
+    YAML::Node toYaml() const
+    {
+        YAML::Node node;
+        node["web"]["address"] = web.address;
+        node["web"]["port"] = web.port;
+        node["web"]["login"] = web.login;
+        node["web"]["password"] = web.password;
+        node["web"]["directory"] = web.directory;
+        node["app"]["reserved"] = app.reserved;
+        return node;
+    }
 };
 
 using Listener = std::function<void( const Settings& )>;
@@ -111,17 +124,7 @@ std::string Config::generate() const
 {
     YAML::Emitter out;
 
-    out << YAML::BeginMap;
-    out << YAML::Key << "web" << YAML::Value;
-
-    out << YAML::BeginMap;
-    out << YAML::Key << "port" << YAML::Value << settings.web.port;
-    out << YAML::Key << "login" << YAML::Value << settings.web.login;
-    out << YAML::Key << "password" << YAML::Value << settings.web.password;
-    out << YAML::Key << "directory" << YAML::Value << settings.web.directory;
-    out << YAML::EndMap;
-
-    out << YAML::EndMap;
+    out << settings.toYaml();
 
     return out.c_str();
 }

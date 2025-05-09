@@ -1,6 +1,34 @@
 include(FetchContent)
 
 ###############################################################################
+# Boost
+###############################################################################
+
+set(BOOST_INCLUDE_LIBRARIES hana)
+set(BOOST_ENABLE_CMAKE ON)
+
+FetchContent_Declare(
+  Boost
+  GIT_REPOSITORY https://github.com/boostorg/boost.git
+  GIT_TAG boost-1.88.0
+)
+FetchContent_MakeAvailable(Boost)
+
+###############################################################################
+# Boost Hana
+###############################################################################
+
+# set(BOOST_INCLUDE_LIBRARIES hana)
+# set(BOOST_ENABLE_CMAKE ON)
+
+# FetchContent_Declare(
+#   hana
+#   GIT_REPOSITORY https://github.com/boostorg/hana.git
+#   GIT_TAG boost-1.88.0
+# )
+# FetchContent_MakeAvailable(hana)
+
+###############################################################################
 # Web Server
 ###############################################################################
 
